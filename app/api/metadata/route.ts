@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const ogImages = await scrapeOGImages(url);
 
     // Merge: og images first (more reliable), then microlink images
-    const allImages = [...new Set([...ogImages, ...microlinkImages])].filter(Boolean);
+    const allImages = Array.from(new Set([...ogImages, ...microlinkImages])).filter(Boolean);
     if (!primaryImage && allImages.length > 0) primaryImage = allImages[0];
 
     // Fallback publisher from hostname
