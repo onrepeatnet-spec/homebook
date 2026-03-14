@@ -4,6 +4,7 @@ import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import ImageUpload from '@/components/ImageUpload';
 import ImagePicker from '@/components/ImagePicker';
+import ContextMenu, { type ContextMenuItem } from '@/components/ContextMenu';
 import { fetchMetadata } from '@/lib/metadata';
 import { useCurrency } from '@/components/CurrencyContext';
 import type { Product } from '@/lib/types';
@@ -30,7 +31,8 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
   const [fetching, setFetching] = useState(false);
   const [formRoom, setFormRoom] = useState<number>(roomId ?? allRooms?.[0]?.id ?? 1);
   const [addMode, setAddMode]   = useState<'link' | 'manual'>('link');
-  const { fmt } = useCurrency();
+  const { fmt, currency } = useCurrency();
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; product: Product } | null>(null);
 
   const filtered = products
     .filter(p => !roomId || p.room_id === roomId)
@@ -98,7 +100,8 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
           {filtered.map((p, idx) => (
             <div key={p.id} className="card animate-in" style={{ animationDelay: `${idx * 0.03}s`, cursor: 'pointer', overflow: 'hidden' }}
-              onClick={() => setSelected(p)}>
+              onClick={() => setSelected(p)}
+              onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, product: p }); }}>
               {p.image
                 ? <img src={p.image} alt={p.name} style={{ width: '100%', height: 160, objectFit: 'cover' }} /> // eslint-disable-line
                 : <div style={{ width: '100%', height: 160, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="shoppingBag" size={36} color="var(--border-dark)" /></div>
@@ -223,7 +226,7 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
                   onChange={e => setForm(f => ({ ...f, store: e.target.value }))} />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Price ($)</label>
+                <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Price ({currency.symbol})</label>
                 <input className="input" type="number" placeholder="0.00" value={form.price}
                   onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
               </div>
@@ -259,6 +262,20 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
             </div>
           </div>
         </Modal>
+      )}
+      {ctxMenu && (
+        <ContextMenu
+          x={ctxMenu.x} y={ctxMenu.y}
+          onClose={() => setCtxMenu(null)}
+          items={[
+            { label: 'View details', icon: '👁', onClick: () => setSelected(ctxMenu.product) },
+            { label: 'Mark as Purchased', icon: '✅', onClick: () => handleStatusChange(ctxMenu.product.id, 'Purchased') },
+            { label: 'Mark as Buying', icon: '🛒', onClick: () => handleStatusChange(ctxMenu.product.id, 'Buying') },
+            { label: 'Mark as Considering', icon: '🤔', onClick: () => handleStatusChange(ctxMenu.product.id, 'Considering') },
+            { label: 'Mark as Idea', icon: '💡', onClick: () => handleStatusChange(ctxMenu.product.id, 'Idea') },
+            { label: 'Delete', icon: '🗑', danger: true, onClick: () => onDelete(ctxMenu.product.id) },
+          ]}
+        />
       )}
     </div>
   );

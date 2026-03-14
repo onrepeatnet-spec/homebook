@@ -17,7 +17,7 @@ export default function BudgetTab({ items, roomId, allRooms, onAdd, onUpdate, on
   const [saving, setSaving]   = useState(false);
   const [formRoom, setFormRoom] = useState<number>(roomId ?? allRooms?.[0]?.id ?? 1);
   const [form, setForm] = useState({ name: '', category: '', estimated_price: '', actual_price: '' });
-  const { fmt } = useCurrency();
+  const { fmt, currency } = useCurrency();
 
   const filtered = roomId ? items.filter(b => b.room_id === roomId) : items;
 
@@ -147,12 +147,12 @@ export default function BudgetTab({ items, roomId, allRooms, onAdd, onUpdate, on
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Estimated Price ($)</label>
+              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Estimated Price ({currency.symbol})</label>
               <input className="input" type="number" placeholder="0.00" value={form.estimated_price}
                 onChange={e => setForm(f => ({ ...f, estimated_price: e.target.value }))} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Actual Price ($) <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>(leave blank if not yet purchased)</span></label>
+              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Actual Price ({currency.symbol}) <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>(leave blank if not yet purchased)</span></label>
               <input className="input" type="number" placeholder="0.00" value={form.actual_price}
                 onChange={e => setForm(f => ({ ...f, actual_price: e.target.value }))} />
             </div>

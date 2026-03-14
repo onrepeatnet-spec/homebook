@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
+import ContextMenu from '@/components/ContextMenu';
 import type { Room, Floorplan } from '@/lib/types';
 import type { Page } from '@/app/page';
 import { updateRoom } from '@/lib/db';
@@ -21,6 +22,7 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
   const [saving, setSaving]     = useState(false);
   const [form, setForm]         = useState({ name: '', description: '', emoji: '🛋️', color: '#C17B4E' });
   const [editForm, setEditForm] = useState({ name: '', description: '', emoji: '🛋️', color: '#C17B4E' });
+  const [ctxMenu, setCtxMenu]   = useState<{ x: number; y: number; room: Room } | null>(null);
 
   // Only show rooms that have at least one polygon drawn on a floorplan
   const mappedRoomIds = new Set(
@@ -114,7 +116,9 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 18 }}>
           {visibleRooms.map((room, idx) => (
-            <div key={room.id} className="card animate-in" style={{ padding: 24, borderLeft: `4px solid ${room.color}`, animationDelay: `${idx * 0.05}s` }}>
+            <div key={room.id} className="card animate-in"
+              style={{ padding: 24, borderLeft: `4px solid ${room.color}`, animationDelay: `${idx * 0.05}s` }}
+              onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, room }); }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ fontSize: 36 }}>{room.emoji}</div>
                 <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => startEdit(room)}>
@@ -156,6 +160,17 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
             </button>
           </div>
         </Modal>
+      )}
+
+      {ctxMenu && (
+        <ContextMenu
+          x={ctxMenu.x} y={ctxMenu.y}
+          onClose={() => setCtxMenu(null)}
+          items={[
+            { label: 'Open workspace', icon: '🏠', onClick: () => onNavigate('room', ctxMenu.room.id) },
+            { label: 'Edit room', icon: '✏️', onClick: () => startEdit(ctxMenu.room) },
+          ]}
+        />
       )}
     </div>
   );

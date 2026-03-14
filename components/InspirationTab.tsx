@@ -4,6 +4,7 @@ import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import ImageUpload from '@/components/ImageUpload';
 import ImagePicker from '@/components/ImagePicker';
+import ContextMenu from '@/components/ContextMenu';
 import { fetchMetadata } from '@/lib/metadata';
 import type { Inspiration } from '@/lib/types';
 
@@ -21,6 +22,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'loading' | 'done' | 'failed'>('idle');
   const [fetchedImages, setFetchedImages] = useState<string[]>([]);
   const [addTab, setAddTab]     = useState<'upload' | 'url' | 'link'>('upload');
+  const [ctxMenu, setCtxMenu]   = useState<{ x: number; y: number; item: Inspiration } | null>(null);
   const [form, setForm]         = useState({
     image_url: '', source_url: '', source_name: '',
     tags: '', notes: '', room_id: roomId ?? 0,
@@ -106,7 +108,9 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
         <div className="masonry-grid">
           {filtered.map((item, idx) => (
             <div key={item.id} className="masonry-item animate-in" style={{ animationDelay: `${idx * 0.03}s` }}>
-              <div className="card" style={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => setSelected(item)}>
+              <div className="card" style={{ cursor: 'pointer', overflow: 'hidden' }}
+                onClick={() => setSelected(item)}
+                onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, item }); }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.image_url} alt="" style={{ width: '100%', display: 'block', transition: 'transform 0.3s' }}
                   onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.04)')}
@@ -258,6 +262,18 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
             </div>
           </div>
         </Modal>
+      )}
+
+      {ctxMenu && (
+        <ContextMenu
+          x={ctxMenu.x} y={ctxMenu.y}
+          onClose={() => setCtxMenu(null)}
+          items={[
+            { label: 'View details', icon: '👁', onClick: () => setSelected(ctxMenu.item) },
+            { label: 'Open image', icon: '🔗', onClick: () => window.open(ctxMenu.item.image_url, '_blank') },
+            { label: 'Remove', icon: '🗑', danger: true, onClick: () => onDelete(ctxMenu.item.id) },
+          ]}
+        />
       )}
     </div>
   );

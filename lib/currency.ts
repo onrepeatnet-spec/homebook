@@ -20,6 +20,11 @@ export function getSavedCurrencyCode(): string {
   return localStorage.getItem('hb_currency') ?? 'EUR';
 }
 
+export function getSavedExchangeRate(): number {
+  if (typeof window === 'undefined') return 1;
+  return parseFloat(localStorage.getItem('hb_exchange_rate') ?? '1') || 1;
+}
+
 export function getCurrency(code?: string): Currency {
   const c = code ?? getSavedCurrencyCode();
   return CURRENCIES.find(cur => cur.code === c) ?? CURRENCIES[0];
@@ -29,12 +34,16 @@ export function setCurrencyCode(code: string) {
   if (typeof window !== 'undefined') localStorage.setItem('hb_currency', code);
 }
 
-export function fmtWithCurrency(n: number | null | undefined, cur: Currency): string {
-  if (n == null) return '—';
-  return `${cur.symbol}${Number(n).toLocaleString(cur.locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+export function setExchangeRate(rate: number) {
+  if (typeof window !== 'undefined') localStorage.setItem('hb_exchange_rate', String(rate));
 }
 
-// Convenience — reads from localStorage directly (for non-reactive uses)
+export function fmtWithCurrency(n: number | null | undefined, cur: Currency, rate = 1): string {
+  if (n == null) return '—';
+  const converted = Number(n) * rate;
+  return `${cur.symbol}${converted.toLocaleString(cur.locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
 export function fmt(n: number | null | undefined): string {
-  return fmtWithCurrency(n, getCurrency());
+  return fmtWithCurrency(n, getCurrency(), getSavedExchangeRate());
 }
