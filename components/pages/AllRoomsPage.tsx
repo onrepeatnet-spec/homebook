@@ -39,7 +39,7 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
   const orderedRooms = localOrder.length > 0 ? localOrder : visibleRooms;
 
   const handleDragStart = (id: number) => setDraggedId(id);
-  const handleDragOver = (e: React.DragEvent, id: number) => {
+  const handleDragOver = (e: { preventDefault: () => void }, id: number) => {
     e.preventDefault();
     if (id !== draggedId) setDragOverId(id);
   };
