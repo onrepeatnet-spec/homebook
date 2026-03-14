@@ -1,11 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import ContextMenu from '@/components/ContextMenu';
 import type { Room, Floorplan } from '@/lib/types';
 import type { Page } from '@/app/page';
-import { updateRoom } from '@/lib/db';
+import { updateRoom, reorderRooms } from '@/lib/db';
 
 const EMOJIS = ['🛋️','🛏️','🍳','💻','🛁','🌿','🎨','📚','🏠','🌳','🍽️','🎵','🪴','🪞','🧘','🚿','🛒','🏋️'];
 const COLORS  = ['#C17B4E','#6B7FA8','#4A7C6F','#8B6BAE','#5A8FA0','#5C7A45','#B87065','#7A6B8A','#C0503A','#D4A843'];
@@ -23,6 +23,9 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
   const [form, setForm]         = useState({ name: '', description: '', emoji: '🛋️', color: '#C17B4E' });
   const [editForm, setEditForm] = useState({ name: '', description: '', emoji: '🛋️', color: '#C17B4E' });
   const [ctxMenu, setCtxMenu]   = useState<{ x: number; y: number; room: Room } | null>(null);
+  const [draggedId, setDraggedId]   = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const [localOrder, setLocalOrder] = useState<Room[]>([]);
 
   // Only show rooms that have at least one polygon drawn on a floorplan
   const mappedRoomIds = new Set(
@@ -30,7 +33,29 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
   );
   const visibleRooms = floorplans.length > 0 && mappedRoomIds.size > 0
     ? rooms.filter(r => mappedRoomIds.has(r.id))
-    : rooms; // if no floorplans exist yet, show all rooms
+    : rooms;
+
+  // Use local order if user has dragged, otherwise use server order
+  const orderedRooms = localOrder.length > 0 ? localOrder : visibleRooms;
+
+  const handleDragStart = (id: number) => setDraggedId(id);
+  const handleDragOver = (e: React.DragEvent, id: number) => {
+    e.preventDefault();
+    if (id !== draggedId) setDragOverId(id);
+  };
+  const handleDrop = async (targetId: number) => {
+    if (!draggedId || draggedId === targetId) { setDraggedId(null); setDragOverId(null); return; }
+    const current = orderedRooms;
+    const fromIdx = current.findIndex(r => r.id === draggedId);
+    const toIdx   = current.findIndex(r => r.id === targetId);
+    const reordered = [...current];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setLocalOrder(reordered);
+    setDraggedId(null);
+    setDragOverId(null);
+    await reorderRooms(reordered.map(r => r.id));
+  };
 
   const handleAdd = async () => {
     if (!form.name) return;
@@ -93,7 +118,7 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, fontWeight: 300 }}>Rooms</h1>
           <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 4 }}>
             {floorplans.length > 0 && mappedRoomIds.size > 0
-              ? `${visibleRooms.length} room${visibleRooms.length !== 1 ? 's' : ''} on your floorplan`
+              ? `${orderedRooms.length} room${orderedRooms.length !== 1 ? 's' : ''} on your floorplan`
               : 'Your home, organised by space'}
           </p>
         </div>
@@ -102,7 +127,7 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
         </button>
       </div>
 
-      {visibleRooms.length === 0 ? (
+      {orderedRooms.length === 0 ? (
         <div className="card" style={{ padding: '60px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 8 }}>
@@ -115,15 +140,32 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 18 }}>
-          {visibleRooms.map((room, idx) => (
-            <div key={room.id} className="card animate-in"
-              style={{ padding: 24, borderLeft: `4px solid ${room.color}`, animationDelay: `${idx * 0.05}s` }}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 18 }}>
+          {orderedRooms.map((room, idx) => (
+            <div key={room.id}
+              className="card animate-in"
+              draggable
+              onDragStart={() => handleDragStart(room.id)}
+              onDragOver={(e) => handleDragOver(e, room.id)}
+              onDrop={() => handleDrop(room.id)}
+              onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+              style={{
+                padding: 24, borderLeft: `4px solid ${room.color}`,
+                animationDelay: `${idx * 0.05}s`,
+                opacity: draggedId === room.id ? 0.4 : 1,
+                outline: dragOverId === room.id ? `2px dashed ${room.color}` : 'none',
+                transition: 'opacity 0.15s, outline 0.15s',
+                cursor: 'grab',
+              }}
               onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, room }); }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ fontSize: 36 }}>{room.emoji}</div>
-                <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => startEdit(room)}>
-                  <Icon name="edit" size={14} />
-                </button>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-3)', cursor: 'grab' }} title="Drag to reorder">⠿</span>
+                  <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => startEdit(room)}>
+                    <Icon name="edit" size={14} />
+                  </button>
+                </div>
               </div>
               <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, marginBottom: 6 }}>{room.name}</h3>
               <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 16 }}>{room.description}</p>

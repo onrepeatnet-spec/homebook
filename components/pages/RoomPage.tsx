@@ -12,8 +12,9 @@ import { getMoodboardItems } from '@/lib/db';
 const TABS = ['inspiration', 'moodboard', 'products', 'colours', 'notes', 'budget'] as const;
 type Tab = typeof TABS[number];
 
-export default function RoomPage({ room, inspirations, products, palettes, budgetItems, onAdd, onUpdate, onDelete }: {
+export default function RoomPage({ room, rooms, inspirations, products, palettes, budgetItems, onAdd, onUpdate, onDelete }: {
   room: Room;
+  rooms: Room[];
   inspirations: Inspiration[];
   products: Product[];
   palettes: ColourPalette[];
@@ -25,6 +26,7 @@ export default function RoomPage({ room, inspirations, products, palettes, budge
     budget: (b: Omit<BudgetItem, 'id' | 'created_at'>) => Promise<void>;
   };
   onUpdate: {
+    inspiration: (id: number, updates: Partial<Inspiration>) => Promise<void>;
     product: (id: number, updates: Partial<Product>) => Promise<void>;
     budget: (id: number, updates: Partial<BudgetItem>) => Promise<void>;
   };
@@ -87,7 +89,9 @@ export default function RoomPage({ room, inspirations, products, palettes, budge
         <InspirationTab
           items={roomInspirations}
           roomId={room.id}
+          allRooms={rooms}
           onAdd={onAdd.inspiration}
+          onUpdate={onUpdate.inspiration}
           onDelete={onDelete.inspiration}
         />
       )}

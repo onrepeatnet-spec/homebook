@@ -3,10 +3,11 @@ import { useState } from 'react';
 import InspirationTab from '@/components/InspirationTab';
 import type { Inspiration, Room } from '@/lib/types';
 
-export default function AllInspirationPage({ inspirations, rooms, onAdd, onDelete }: {
+export default function AllInspirationPage({ inspirations, rooms, onAdd, onUpdate, onDelete }: {
   inspirations: Inspiration[];
   rooms: Room[];
   onAdd: (item: Omit<Inspiration, 'id' | 'created_at'>) => Promise<void>;
+  onUpdate: (id: number, updates: Partial<Inspiration>) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }) {
   const [roomFilter, setRoomFilter] = useState<number | null>(null);
@@ -38,6 +39,7 @@ export default function AllInspirationPage({ inspirations, rooms, onAdd, onDelet
         roomId={roomFilter}
         allRooms={rooms}
         onAdd={onAdd}
+        onUpdate={onUpdate}
         onDelete={onDelete}
       />
     </div>

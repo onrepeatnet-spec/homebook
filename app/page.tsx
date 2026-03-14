@@ -90,6 +90,9 @@ export default function Home() {
       product: async (id: number, updates: Partial<Product>) => {
         const item = await db.updateProduct(id, updates); setProducts(prev => prev.map(p => p.id === id ? item : p));
       },
+      inspiration: async (id: number, updates: Partial<Inspiration>) => {
+        const item = await db.updateInspiration(id, updates); setInspirations(prev => prev.map(i => i.id === id ? item : i));
+      },
       budget: async (id: number, updates: Partial<BudgetItem>) => {
         const item = await db.updateBudgetItem(id, updates); setBudgetItems(prev => prev.map(b => b.id === id ? item : b));
       },
@@ -151,7 +154,7 @@ export default function Home() {
           <AllRoomsPage rooms={rooms} floorplans={floorplans} onNavigate={navigate} onAdd={actions.add.room} onUpdate={actions.update.room} />
         )}
         {page === 'room' && activeRoom && (
-          <RoomPage room={activeRoom} inspirations={inspirations} products={products} palettes={palettes} budgetItems={budgetItems}
+          <RoomPage room={activeRoom} rooms={visibleRooms} inspirations={inspirations} products={products} palettes={palettes} budgetItems={budgetItems}
             onAdd={actions.add} onUpdate={actions.update} onDelete={actions.delete} />
         )}
         {page === 'floorplans' && (
@@ -163,7 +166,7 @@ export default function Home() {
           />
         )}
         {page === 'inspiration' && (
-          <AllInspirationPage inspirations={inspirations} rooms={visibleRooms} onAdd={actions.add.inspiration} onDelete={actions.delete.inspiration} />
+          <AllInspirationPage inspirations={inspirations} rooms={visibleRooms} onAdd={actions.add.inspiration} onUpdate={actions.update.inspiration} onDelete={actions.delete.inspiration} />
         )}
         {page === 'products' && (
           <AllProductsPage products={products} rooms={visibleRooms} onAdd={actions.add.product} onUpdate={actions.update.product} onDelete={actions.delete.product} />

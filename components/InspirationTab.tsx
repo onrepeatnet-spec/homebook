@@ -8,11 +8,12 @@ import ContextMenu from '@/components/ContextMenu';
 import { fetchMetadata } from '@/lib/metadata';
 import type { Inspiration } from '@/lib/types';
 
-export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelete }: {
+export default function InspirationTab({ items, roomId, allRooms, onAdd, onUpdate, onDelete }: {
   items: Inspiration[];
   roomId: number | null;
   allRooms?: { id: number; name: string; emoji: string }[];
   onAdd: (item: Omit<Inspiration, 'id' | 'created_at'>) => Promise<void>;
+  onUpdate?: (id: number, updates: Partial<Inspiration>) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }) {
   const [selected, setSelected] = useState<Inspiration | null>(null);
@@ -162,6 +163,21 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
               </div>
             )}
             {selected.notes && <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 16 }}>{selected.notes}</p>}
+            {allRooms && allRooms.length > 1 && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Move to room</label>
+                <select className="input" value={selected.room_id}
+                  onChange={async e => {
+                    const room_id = Number(e.target.value);
+                    if (onUpdate) {
+                      await onUpdate(selected.id, { room_id });
+                      setSelected(s => s ? { ...s, room_id } : null);
+                    }
+                  }}>
+                  {allRooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
+                </select>
+              </div>
+            )}
             <a href={selected.image_url} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ display: 'flex', marginBottom: 10, textDecoration: 'none' }}>
               <Icon name="eye" size={14} /> View full image
             </a>

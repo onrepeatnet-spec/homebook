@@ -3,7 +3,7 @@ import type { Room, Inspiration, Product, ColourPalette, BudgetItem, MoodboardIt
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 export const getRooms = async (): Promise<Room[]> => {
-  const { data, error } = await supabase.from('rooms').select('*').order('created_at');
+  const { data, error } = await supabase.from('rooms').select('*').order('order').order('created_at');
   if (error) throw error;
   return data;
 };
@@ -20,6 +20,13 @@ export const updateRoom = async (id: number, updates: Partial<Room>): Promise<Ro
 export const deleteRoom = async (id: number): Promise<void> => {
   const { error } = await supabase.from('rooms').delete().eq('id', id);
   if (error) throw error;
+};
+export const reorderRooms = async (orderedIds: number[]): Promise<void> => {
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from('rooms').update({ order: index }).eq('id', id)
+    )
+  );
 };
 
 // ─── Inspiration ──────────────────────────────────────────────────────────────

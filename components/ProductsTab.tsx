@@ -146,6 +146,19 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
                 {STATUSES.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
+            {allRooms && allRooms.length > 1 && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Move to room</label>
+                <select className="input" value={selected.room_id}
+                  onChange={async e => {
+                    const room_id = Number(e.target.value);
+                    await onUpdate(selected.id, { room_id });
+                    setSelected(s => s ? { ...s, room_id } : null);
+                  }}>
+                  {allRooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
+                </select>
+              </div>
+            )}
             {selected.url && selected.url !== '#' && (
               <a href={selected.url} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ display: 'flex', marginBottom: 10, textDecoration: 'none' }}>
                 <Icon name="link" size={14} /> View product page

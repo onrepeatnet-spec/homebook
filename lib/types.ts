@@ -4,6 +4,7 @@ export type Room = {
   description: string;
   emoji: string;
   color: string;
+  order: number;
   created_at: string;
 };
 
@@ -53,7 +54,7 @@ export type BudgetItem = {
 
 export type MoodboardItem = {
   id: string;
-  type: 'image' | 'color' | 'text';
+  type: 'image' | 'color' | 'text' | 'link';
   x: number;
   y: number;
   w: number;
@@ -63,6 +64,8 @@ export type MoodboardItem = {
   color?: string;
   text?: string;
   label?: string;
+  href?: string;
+  title?: string;
 };
 
 export type FloorplanRoom = {
