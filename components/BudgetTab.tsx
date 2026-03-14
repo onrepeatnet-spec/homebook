@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
-import { fmt } from '@/lib/currency';
+import { useCurrency } from '@/components/CurrencyContext';
 import type { BudgetItem } from '@/lib/types';
 
 export default function BudgetTab({ items, roomId, allRooms, onAdd, onUpdate, onDelete }: {
@@ -17,6 +17,7 @@ export default function BudgetTab({ items, roomId, allRooms, onAdd, onUpdate, on
   const [saving, setSaving]   = useState(false);
   const [formRoom, setFormRoom] = useState<number>(roomId ?? allRooms?.[0]?.id ?? 1);
   const [form, setForm] = useState({ name: '', category: '', estimated_price: '', actual_price: '' });
+  const { fmt } = useCurrency();
 
   const filtered = roomId ? items.filter(b => b.room_id === roomId) : items;
 

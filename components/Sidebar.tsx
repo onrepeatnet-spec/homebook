@@ -1,10 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Icon from './Icon';
 import SettingsModal from './SettingsModal';
-import type { Room, Product } from '@/lib/types';
+import { useCurrency } from './CurrencyContext';
+import type { Room, Product, Floorplan } from '@/lib/types';
 import type { Page } from '@/app/page';
-import { getCurrency } from '@/lib/currency';
 
 const NAV = [
   { id: 'dashboard',   label: 'Dashboard',    icon: 'sparkles'     as const },
@@ -18,19 +18,24 @@ const NAV = [
   { id: 'calendar',    label: 'Calendar',     icon: 'fileText'     as const },
 ];
 
-export default function Sidebar({ page, rooms, products, onNavigate }: {
+export default function Sidebar({ page, rooms, products, floorplans, onNavigate }: {
   page: Page;
   rooms: Room[];
   products: Product[];
+  floorplans: Floorplan[];
   onNavigate: (p: Page, roomId?: number) => void;
 }) {
   const [open, setOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [currencySymbol, setCurrencySymbol] = useState('€');
+  const { currency } = useCurrency();
 
-  useEffect(() => {
-    setCurrencySymbol(getCurrency().symbol);
-  }, []);
+  // Only show rooms that are mapped on a floorplan polygon
+  const mappedRoomIds = new Set(
+    floorplans.flatMap(fp => fp.rooms.map(r => r.room_id)).filter((id): id is number => id !== null)
+  );
+  const visibleRooms = floorplans.length > 0 && mappedRoomIds.size > 0
+    ? rooms.filter(r => mappedRoomIds.has(r.id))
+    : rooms;
 
   return (
     <div style={{ width: open ? 220 : 60, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', transition: 'width 0.2s ease', overflow: 'hidden', height: '100vh' }}>
@@ -48,7 +53,7 @@ export default function Sidebar({ page, rooms, products, onNavigate }: {
             onClick={() => setShowSettings(true)}
             title="Settings & Currency"
             style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 6, padding: '3px 7px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--accent)', fontFamily: 'inherit', display: 'flex', alignItems: 'center' }}>
-            {currencySymbol}
+            {currency.symbol}
           </button>
           <button onClick={() => setOpen(!open)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-3)', borderRadius: 6, display: 'flex' }}>
             <Icon name="chevronRight" size={15} />
@@ -67,10 +72,10 @@ export default function Sidebar({ page, rooms, products, onNavigate }: {
           </button>
         ))}
 
-        {open && rooms.length > 0 && (
+        {open && visibleRooms.length > 0 && (
           <>
             <div style={{ padding: '14px 14px 5px', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)' }}>Rooms</div>
-            {rooms.map(room => (
+            {visibleRooms.map(room => (
               <button key={room.id}
                 className={`nav-item ${page === 'room' ? 'active' : ''}`}
                 onClick={() => onNavigate('room', room.id)}
@@ -91,7 +96,7 @@ export default function Sidebar({ page, rooms, products, onNavigate }: {
         </div>
       )}
 
-      {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setCurrencySymbol(getCurrency().symbol); }} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

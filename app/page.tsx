@@ -13,6 +13,7 @@ import FloorplanPage from '@/components/pages/FloorplanPage';
 import TodoPage from '@/components/pages/TodoPage';
 import CostTrackerPage from '@/components/pages/CostTrackerPage';
 import CalendarPage from '@/components/pages/CalendarPage';
+import { CurrencyProvider } from '@/components/CurrencyContext';
 import * as db from '@/lib/db';
 import type { Room, Inspiration, Product, ColourPalette, BudgetItem, Floorplan, Todo, CostItem, CalendarEvent } from '@/lib/types';
 
@@ -127,9 +128,10 @@ export default function Home() {
   }
 
   return (
+    <CurrencyProvider>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
       <div className="desktop-sidebar">
-        <Sidebar page={page} rooms={rooms} products={products} onNavigate={navigate} />
+        <Sidebar page={page} rooms={rooms} products={products} floorplans={floorplans} onNavigate={navigate} />
       </div>
 
       <div className="main-content" style={{ flex: 1, overflow: 'auto' }}>
@@ -137,7 +139,7 @@ export default function Home() {
           <Dashboard rooms={rooms} inspirations={inspirations} products={products} budgetItems={budgetItems} todos={todos} costItems={costItems} calEvents={calEvents} onNavigate={navigate} />
         )}
         {page === 'rooms' && (
-          <AllRoomsPage rooms={rooms} onNavigate={navigate} onAdd={actions.add.room} onUpdate={actions.update.room} />
+          <AllRoomsPage rooms={rooms} floorplans={floorplans} onNavigate={navigate} onAdd={actions.add.room} onUpdate={actions.update.room} />
         )}
         {page === 'room' && activeRoom && (
           <RoomPage room={activeRoom} inspirations={inspirations} products={products} palettes={palettes} budgetItems={budgetItems}
@@ -173,5 +175,6 @@ export default function Home() {
 
       <MobileNav page={page} onNavigate={navigate} />
     </div>
+    </CurrencyProvider>
   );
 }

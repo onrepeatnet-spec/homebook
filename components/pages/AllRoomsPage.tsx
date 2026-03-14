@@ -2,15 +2,16 @@
 import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
-import type { Room } from '@/lib/types';
+import type { Room, Floorplan } from '@/lib/types';
 import type { Page } from '@/app/page';
 import { updateRoom } from '@/lib/db';
 
 const EMOJIS = ['🛋️','🛏️','🍳','💻','🛁','🌿','🎨','📚','🏠','🌳','🍽️','🎵','🪴','🪞','🧘','🚿','🛒','🏋️'];
 const COLORS  = ['#C17B4E','#6B7FA8','#4A7C6F','#8B6BAE','#5A8FA0','#5C7A45','#B87065','#7A6B8A','#C0503A','#D4A843'];
 
-export default function AllRoomsPage({ rooms, onNavigate, onAdd, onUpdate }: {
+export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onUpdate }: {
   rooms: Room[];
+  floorplans: Floorplan[];
   onNavigate: (p: Page, roomId?: number) => void;
   onAdd: (data: Omit<Room, 'id' | 'created_at'>) => Promise<void>;
   onUpdate: (id: number, updates: Partial<Room>) => Promise<void>;
@@ -20,6 +21,14 @@ export default function AllRoomsPage({ rooms, onNavigate, onAdd, onUpdate }: {
   const [saving, setSaving]     = useState(false);
   const [form, setForm]         = useState({ name: '', description: '', emoji: '🛋️', color: '#C17B4E' });
   const [editForm, setEditForm] = useState({ name: '', description: '', emoji: '🛋️', color: '#C17B4E' });
+
+  // Only show rooms that have at least one polygon drawn on a floorplan
+  const mappedRoomIds = new Set(
+    floorplans.flatMap(fp => fp.rooms.map(r => r.room_id)).filter((id): id is number => id !== null)
+  );
+  const visibleRooms = floorplans.length > 0 && mappedRoomIds.size > 0
+    ? rooms.filter(r => mappedRoomIds.has(r.id))
+    : rooms; // if no floorplans exist yet, show all rooms
 
   const handleAdd = async () => {
     if (!form.name) return;
@@ -80,22 +89,31 @@ export default function AllRoomsPage({ rooms, onNavigate, onAdd, onUpdate }: {
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, fontWeight: 300 }}>Rooms</h1>
-          <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 4 }}>Your home, organised by space</p>
+          <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 4 }}>
+            {floorplans.length > 0 && mappedRoomIds.size > 0
+              ? `${visibleRooms.length} room${visibleRooms.length !== 1 ? 's' : ''} on your floorplan`
+              : 'Your home, organised by space'}
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <Icon name="plus" size={14} /> Add Room
         </button>
       </div>
 
-      {rooms.length === 0 ? (
+      {visibleRooms.length === 0 ? (
         <div className="card" style={{ padding: '60px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 8 }}>No rooms yet</p>
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>Add your first room</button>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 8 }}>
+            {floorplans.length > 0 ? 'No rooms drawn on your floorplan yet' : 'No rooms yet'}
+          </p>
+          {floorplans.length > 0
+            ? <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 16 }}>Go to Floorplans, draw a polygon and label it to create a room</p>
+            : <button className="btn btn-primary" onClick={() => setShowAdd(true)}>Add your first room</button>
+          }
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 18 }}>
-          {rooms.map((room, idx) => (
+          {visibleRooms.map((room, idx) => (
             <div key={room.id} className="card animate-in" style={{ padding: 24, borderLeft: `4px solid ${room.color}`, animationDelay: `${idx * 0.05}s` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ fontSize: 36 }}>{room.emoji}</div>

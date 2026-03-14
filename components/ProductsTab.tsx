@@ -5,7 +5,7 @@ import Modal from '@/components/Modal';
 import ImageUpload from '@/components/ImageUpload';
 import ImagePicker from '@/components/ImagePicker';
 import { fetchMetadata } from '@/lib/metadata';
-import { fmt } from '@/lib/currency';
+import { useCurrency } from '@/components/CurrencyContext';
 import type { Product } from '@/lib/types';
 
 const statusColor = (s: string) => ({ Idea: 'badge-idea', Considering: 'badge-considering', Buying: 'badge-buying', Purchased: 'badge-purchased' }[s] ?? 'badge-idea');
@@ -30,6 +30,7 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
   const [fetching, setFetching] = useState(false);
   const [formRoom, setFormRoom] = useState<number>(roomId ?? allRooms?.[0]?.id ?? 1);
   const [addMode, setAddMode]   = useState<'link' | 'manual'>('link');
+  const { fmt } = useCurrency();
 
   const filtered = products
     .filter(p => !roomId || p.room_id === roomId)

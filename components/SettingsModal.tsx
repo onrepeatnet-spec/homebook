@@ -1,20 +1,16 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Modal from './Modal';
-import { CURRENCIES, setCurrencyCode } from '@/lib/currency';
+import { CURRENCIES } from '@/lib/currency';
+import { useCurrency } from './CurrencyContext';
 
 export default function SettingsModal({ onClose }: { onClose: () => void }) {
-  const [selected, setSelected] = useState('EUR');
-
-  // Read from localStorage only on client
-  useEffect(() => {
-    const saved = localStorage.getItem('hb_currency') ?? 'EUR';
-    setSelected(saved);
-  }, []);
+  const { currency, setCurrency } = useCurrency();
+  const [selected, setSelected] = useState(currency.code);
 
   const handleSave = () => {
-    setCurrencyCode(selected);
-    window.location.reload();
+    setCurrency(selected);
+    onClose();
   };
 
   return (
@@ -41,12 +37,12 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 10, lineHeight: 1.5 }}>
-            Changes how prices are displayed. Does not convert existing values.
+            Changes how prices are displayed everywhere. Does not convert existing values.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave}>Save & Apply</button>
+          <button className="btn btn-primary" onClick={handleSave}>Apply</button>
         </div>
       </div>
     </Modal>

@@ -1,6 +1,6 @@
 'use client';
 import Icon from '@/components/Icon';
-import { fmt } from '@/lib/currency';
+import { useCurrency } from '@/components/CurrencyContext';
 import type { Room, Inspiration, Product, BudgetItem, Todo, CostItem, CalendarEvent } from '@/lib/types';
 import type { Page } from '@/app/page';
 
@@ -29,6 +29,7 @@ export default function Dashboard({ rooms, inspirations, products, budgetItems, 
   calEvents?: CalendarEvent[];
   onNavigate: (p: Page, roomId?: number) => void;
 }) {
+  const { fmt } = useCurrency();
   const totalEst   = budgetItems.reduce((s, b) => s + (b.estimated_price || 0), 0);
   const totalSpent = budgetItems.filter(b => b.purchased).reduce((s, b) => s + (b.actual_price ?? b.estimated_price ?? 0), 0);
   const progress   = totalEst ? (totalSpent / totalEst) * 100 : 0;

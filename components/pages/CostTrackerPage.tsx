@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
-import { fmt } from '@/lib/currency';
+import { useCurrency } from '@/components/CurrencyContext';
 import type { CostItem, CostCategory } from '@/lib/types';
 
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -36,6 +36,7 @@ export default function CostTrackerPage({ items, onAdd, onUpdate, onDelete }: {
     name: '', category: 'Purchase Price', amount: 0, date: null,
     notes: '', recurring: false, recurring_period: null,
   });
+  const { fmt } = useCurrency();
 
   const totalOneOff   = items.filter(i => !i.recurring).reduce((s, i) => s + i.amount, 0);
   const totalMonthly  = items.filter(i => i.recurring && i.recurring_period === 'monthly').reduce((s, i) => s + i.amount, 0);
