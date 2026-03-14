@@ -119,15 +119,6 @@ export default function Home() {
 
   const activeRoom = rooms.find(r => r.id === activeRoomId);
 
-  // Only expose rooms that have been drawn on a floorplan polygon.
-  // Falls back to all rooms if no floorplans exist yet.
-  const mappedRoomIds = new Set(
-    floorplans.flatMap(fp => fp.rooms.map(r => r.room_id)).filter((id): id is number => id !== null)
-  );
-  const visibleRooms = floorplans.length > 0 && mappedRoomIds.size > 0
-    ? rooms.filter(r => mappedRoomIds.has(r.id))
-    : rooms;
-
   if (loading) {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
@@ -148,13 +139,13 @@ export default function Home() {
 
       <div className="main-content" style={{ flex: 1, overflow: 'auto' }}>
         {page === 'dashboard' && (
-          <Dashboard rooms={visibleRooms} inspirations={inspirations} products={products} budgetItems={budgetItems} todos={todos} costItems={costItems} calEvents={calEvents} onNavigate={navigate} />
+          <Dashboard rooms={rooms} inspirations={inspirations} products={products} budgetItems={budgetItems} todos={todos} costItems={costItems} calEvents={calEvents} onNavigate={navigate} />
         )}
         {page === 'rooms' && (
           <AllRoomsPage rooms={rooms} floorplans={floorplans} onNavigate={navigate} onAdd={actions.add.room} onUpdate={actions.update.room} />
         )}
         {page === 'room' && activeRoom && (
-          <RoomPage room={activeRoom} rooms={visibleRooms} inspirations={inspirations} products={products} palettes={palettes} budgetItems={budgetItems}
+          <RoomPage room={activeRoom} rooms={rooms} inspirations={inspirations} products={products} palettes={palettes} budgetItems={budgetItems}
             onAdd={actions.add} onUpdate={actions.update} onDelete={actions.delete} />
         )}
         {page === 'floorplans' && (
@@ -166,13 +157,13 @@ export default function Home() {
           />
         )}
         {page === 'inspiration' && (
-          <AllInspirationPage inspirations={inspirations} rooms={visibleRooms} onAdd={actions.add.inspiration} onUpdate={actions.update.inspiration} onDelete={actions.delete.inspiration} />
+          <AllInspirationPage inspirations={inspirations} rooms={rooms} onAdd={actions.add.inspiration} onUpdate={actions.update.inspiration} onDelete={actions.delete.inspiration} />
         )}
         {page === 'products' && (
-          <AllProductsPage products={products} rooms={visibleRooms} onAdd={actions.add.product} onUpdate={actions.update.product} onDelete={actions.delete.product} />
+          <AllProductsPage products={products} rooms={rooms} onAdd={actions.add.product} onUpdate={actions.update.product} onDelete={actions.delete.product} />
         )}
         {page === 'budget' && (
-          <BudgetOverviewPage budgetItems={budgetItems} rooms={visibleRooms} onAdd={actions.add.budget} onUpdate={actions.update.budget} onDelete={actions.delete.budget} />
+          <BudgetOverviewPage budgetItems={budgetItems} rooms={rooms} onAdd={actions.add.budget} onUpdate={actions.update.budget} onDelete={actions.delete.budget} />
         )}
         {page === 'todos' && (
           <TodoPage todos={todos} onAdd={actions.add.todo} onUpdate={actions.update.todo} onDelete={actions.delete.todo} />
