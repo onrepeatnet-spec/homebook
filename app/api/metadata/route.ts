@@ -105,7 +105,7 @@ async function scrapeOGImages(url: string): Promise<string[]> {
       } catch { /* ignore malformed JSON-LD */ }
     }
 
-    return [...new Set(images)].filter(url => url.startsWith('http')).slice(0, 8);
+    return Array.from(new Set(images)).filter(url => url.startsWith('http')).slice(0, 8);
   } catch {
     return [];
   }
