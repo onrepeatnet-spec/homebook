@@ -19,7 +19,7 @@ const CurrencyContext = createContext<CurrencyContextType>({
   symbol: '€',
 });
 
-export function CurrencyProvider({ children }: { children: React.ReactNode }) {
+export function CurrencyProvider({ children }: { children?: React.ReactNode }) {
   const [currency, setCurrencyState]     = useState<Currency>(CURRENCIES[0]);
   const [exchangeRate, setExchangeRateState] = useState<number>(1);
 

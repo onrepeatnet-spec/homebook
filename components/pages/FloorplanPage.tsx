@@ -122,6 +122,7 @@ export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanC
           description: '',
           emoji: '🏠',
           color: labelForm.color,
+          order: 0,
         });
         linkedRoomId = newRoom.id;
         onRoomCreated(newRoom);

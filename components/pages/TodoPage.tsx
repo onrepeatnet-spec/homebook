@@ -107,8 +107,10 @@ export default function TodoPage({ todos, onAdd, onUpdate, onDelete }: {
                 const po = { High: 0, Medium: 1, Low: 2 };
                 if (isOverdue(a.due_date) !== isOverdue(b.due_date)) return isOverdue(a.due_date) ? -1 : 1;
                 return (po[a.priority] ?? 1) - (po[b.priority] ?? 1);
-              }).map(todo => (
-                <TodoItem key={todo.id} todo={todo} onUpdate={onUpdate} onDelete={onDelete} />
+              }).map((todo) => (
+                <div key={todo.id}>
+                  <TodoItem todo={todo} onUpdate={onUpdate} onDelete={onDelete} />
+                </div>
               ))}
             </div>
           </div>
@@ -160,11 +162,13 @@ export default function TodoPage({ todos, onAdd, onUpdate, onDelete }: {
   );
 }
 
-function TodoItem({ todo, onUpdate, onDelete }: {
+type TodoItemProps = {
   todo: Todo;
-  onUpdate: (id: number, u: Partial<Todo>) => Promise<void>;
+  onUpdate: (id: number, updates: Partial<Todo>) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
-}) {
+};
+
+function TodoItem({ todo, onUpdate, onDelete }: TodoItemProps) {
   const [expanded, setExpanded] = useState(false);
   const overdue = isOverdue(todo.due_date) && !todo.done;
 

@@ -4,7 +4,7 @@ import Icon from './Icon';
 export default function Modal({ title, onClose, children }: {
   title: string;
   onClose: () => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <div

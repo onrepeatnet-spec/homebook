@@ -9,8 +9,8 @@ import { reorderRooms } from '@/lib/db';
 
 const EMOJIS = ['🛋️','🛏️','🍳','💻','🛁','🌿','🎨','📚','🏠','🌳','🍽️','🎵','🪴','🪞','🧘','🚿','🛒','🏋️'];
 const COLORS  = ['#C17B4E','#6B7FA8','#4A7C6F','#8B6BAE','#5A8FA0','#5C7A45','#B87065','#7A6B8A','#C0503A','#D4A843'];
-type RFD = { name: string; description: string; emoji: string; color: string };
-const EMPTY: RFD = { name: '', description: '', emoji: '🛋️', color: '#C17B4E' };
+type RFD = { name: string; description: string; emoji: string; color: string; order: number };
+const EMPTY: RFD = { name: '', description: '', emoji: '🛋️', color: '#C17B4E', order: 0 };
 
 function RoomForm({ f, onChange }: { f: RFD; onChange: (u: Partial<RFD>) => void }) {
   return (

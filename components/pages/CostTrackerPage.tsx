@@ -153,8 +153,8 @@ export default function CostTrackerPage({ items, onAdd, onUpdate, onDelete }: {
               <select className="input" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as CostCategory }))}>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
-              {CAT_INFO[form.category] && (
-                <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6, fontStyle: 'italic' }}>ℹ️ {CAT_INFO[form.category]}</p>
+              {CAT_INFO[form.category as CostCategory] && (
+                <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6, fontStyle: 'italic' }}>ℹ️ {CAT_INFO[form.category as CostCategory]}</p>
               )}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
