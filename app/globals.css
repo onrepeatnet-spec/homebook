@@ -103,10 +103,10 @@ body {
   backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   animation: fadeIn 0.15s ease;
-  padding: 16px;
+  padding: 40px 16px;
   overflow-y: auto;
 }
 .modal {
@@ -116,10 +116,21 @@ body {
   padding: 28px;
   width: 100%;
   max-width: 520px;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
+  overflow-y: visible;
   animation: fadeSlideUp 0.2s ease;
-  margin: auto;
+  flex-shrink: 0;
+  margin: auto 0;
+}
+@media (min-height: 600px) {
+  .modal-overlay {
+    align-items: center;
+    padding: 16px;
+  }
+  .modal {
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    margin: 0;
+  }
 }
 
 /* Form inputs */

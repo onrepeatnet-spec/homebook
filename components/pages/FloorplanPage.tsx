@@ -356,23 +356,39 @@ export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanC
       {labelModal && (
         <Modal title="Label this room" onClose={() => { setLabelModal(false); setPendingPoly(null); }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Option A: link to existing */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Link to existing room</label>
+              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>
+                Link to an existing room <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>(optional)</span>
+              </label>
               <select className="input" value={labelForm.room_id}
                 onChange={e => {
                   const id = e.target.value;
                   const rm = rooms.find(r => r.id === Number(id));
-                  setLabelForm(f => ({ ...f, room_id: id, room_name: rm?.name ?? f.room_name }));
+                  setLabelForm(f => ({ ...f, room_id: id, room_name: id ? (rm?.name ?? f.room_name) : f.room_name }));
                 }}>
-                <option value="">— New / custom label —</option>
+                <option value="">— Create as a new room —</option>
                 {rooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
               </select>
             </div>
+
+            {/* Label name */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Room label</label>
-              <input className="input" placeholder="e.g. Living Room" value={labelForm.room_name}
+              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>
+                Room name {!labelForm.room_id && <span style={{ color: 'var(--red)' }}>*</span>}
+              </label>
+              <input className="input" placeholder="e.g. Living Room"
+                value={labelForm.room_name}
                 onChange={e => setLabelForm(f => ({ ...f, room_name: e.target.value }))} />
+              {!labelForm.room_id && (
+                <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>
+                  This will also create a new room in your Rooms list
+                </p>
+              )}
             </div>
+
+            {/* Colour */}
             <div>
               <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 8 }}>Colour</label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -382,9 +398,13 @@ export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanC
                 ))}
               </div>
             </div>
+
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => { setLabelModal(false); setPendingPoly(null); }}>Cancel</button>
-              <button className="btn btn-primary" disabled={saving || (!labelForm.room_name && !labelForm.room_id)} onClick={saveLabel}>
+              <button
+                className="btn btn-primary"
+                disabled={saving || (!labelForm.room_name && !labelForm.room_id)}
+                onClick={saveLabel}>
                 {saving ? 'Saving…' : 'Save Room'}
               </button>
             </div>

@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from './Icon';
 import SettingsModal from './SettingsModal';
 import type { Room, Product } from '@/lib/types';
 import type { Page } from '@/app/page';
+import { getCurrency } from '@/lib/currency';
 
 const NAV = [
   { id: 'dashboard',   label: 'Dashboard',    icon: 'sparkles'     as const },
@@ -25,24 +26,38 @@ export default function Sidebar({ page, rooms, products, onNavigate }: {
 }) {
   const [open, setOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [currencySymbol, setCurrencySymbol] = useState('€');
+
+  useEffect(() => {
+    setCurrencySymbol(getCurrency().symbol);
+  }, []);
 
   return (
     <div style={{ width: open ? 220 : 60, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', transition: 'width 0.2s ease', overflow: 'hidden', height: '100vh' }}>
-      {/* Logo */}
-      <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      {/* Logo + settings */}
+      <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 8 }}>
         {open && (
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, letterSpacing: '-0.02em' }}>homebook</div>
             <div style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.1em', marginTop: 1 }}>YOUR HOME LIBRARY</div>
           </div>
         )}
-        <button onClick={() => setOpen(!open)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-3)', borderRadius: 6, display: 'flex', marginLeft: open ? 0 : 'auto' }}>
-          <Icon name="chevronRight" size={15} />
-        </button>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: open ? 0 : 'auto' }}>
+          {/* Currency badge — clicking opens settings */}
+          <button
+            onClick={() => setShowSettings(true)}
+            title="Settings & Currency"
+            style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 6, padding: '3px 7px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--accent)', fontFamily: 'inherit', display: 'flex', alignItems: 'center' }}>
+            {currencySymbol}
+          </button>
+          <button onClick={() => setOpen(!open)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-3)', borderRadius: 6, display: 'flex' }}>
+            <Icon name="chevronRight" size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Nav */}
-      <div style={{ padding: '10px 10px', flex: 1, overflowY: 'auto' }}>
+      <div style={{ padding: '10px', flex: 1, overflowY: 'auto' }}>
         {NAV.map(item => (
           <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`}
             onClick={() => onNavigate(item.id as Page)}
@@ -69,23 +84,14 @@ export default function Sidebar({ page, rooms, products, onNavigate }: {
       </div>
 
       {open && (
-        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center', marginBottom: 8 }}>
+        <div style={{ padding: '10px 14px 14px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>
             {rooms.length} rooms · {products.length} products
           </div>
-          <button className="nav-item" style={{ justifyContent: 'center', fontSize: 12 }} onClick={() => setShowSettings(true)}>
-            <Icon name="sparkles" size={14} /> Settings
-          </button>
         </div>
       )}
-      {!open && (
-        <div style={{ padding: '12px 10px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          <button className="nav-item" style={{ justifyContent: 'center', padding: '8px' }} onClick={() => setShowSettings(true)}>
-            <Icon name="sparkles" size={15} />
-          </button>
-        </div>
-      )}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
+      {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setCurrencySymbol(getCurrency().symbol); }} />}
     </div>
   );
 }

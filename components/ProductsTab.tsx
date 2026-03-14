@@ -182,8 +182,8 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
               {fetchStatus === 'idle' && addMode === 'link' && <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>Paste any product URL and click Fetch. Works on most furniture & decor stores.</p>}
             </div>
 
-            {/* Image picker — shown after fetch if multiple images found */}
-            {fetchedImages.length > 1 && (
+            {/* Image picker — shown after fetch if images found */}
+            {fetchedImages.length > 0 && (
               <ImagePicker
                 images={fetchedImages}
                 selected={form.image}

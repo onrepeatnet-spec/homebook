@@ -198,8 +198,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
                 <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Page URL</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input className="input" placeholder="https://..." value={form.source_url}
-                    onChange={e => { setForm(f => ({ ...f, source_url: e.target.value })); setFetchStatus('idle'); setFetchedImages([]); }}
-                    onBlur={fetchLink} />
+                    onChange={e => { setForm(f => ({ ...f, source_url: e.target.value })); setFetchStatus('idle'); setFetchedImages([]); }} />
                   <button className="btn btn-primary" disabled={fetching || !form.source_url} onClick={fetchLink} style={{ flexShrink: 0, minWidth: 80 }}>
                     {fetching ? '…' : '✨ Fetch'}
                   </button>
@@ -211,7 +210,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
             )}
 
             {/* Image picker — shown after fetch */}
-            {fetchedImages.length > 1 && (
+            {fetchedImages.length > 0 && (
               <ImagePicker
                 images={fetchedImages}
                 selected={form.image_url}
