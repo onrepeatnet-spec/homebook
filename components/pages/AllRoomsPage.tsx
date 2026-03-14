@@ -91,7 +91,7 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
 
   const startEdit = (room: Room) => {
     setEditing(room);
-    setEditForm({ name: room.name, description: room.description, emoji: room.emoji, color: room.color });
+    setEditForm({ name: room.name, description: room.description, emoji: room.emoji, color: room.color, order: room.order ?? 0 });
   };
 
   const handleEdit = async () => {
