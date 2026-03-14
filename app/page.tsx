@@ -33,20 +33,29 @@ export default function Home() {
   const [costItems, setCostItems]     = useState<CostItem[]>([]);
   const [calEvents, setCalEvents]     = useState<CalendarEvent[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [loadErrors, setLoadErrors]   = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
-      try {
-        const [r, i, p, pal, b, fp, td, ci, ce] = await Promise.all([
-          db.getRooms(), db.getInspirations(), db.getProducts(),
-          db.getPalettes(), db.getBudgetItems(), db.getFloorplans(),
-          db.getTodos(), db.getCostItems(), db.getCalendarEvents(),
-        ]);
-        setRooms(r); setInspirations(i); setProducts(p);
-        setPalettes(pal); setBudgetItems(b); setFloorplans(fp);
-        setTodos(td); setCostItems(ci); setCalEvents(ce);
-      } catch (e) { console.error('Failed to load data:', e); }
-      finally { setLoading(false); }
+      const errors: string[] = [];
+
+      const [r, i, p, pal, b, fp, td, ci, ce] = await Promise.all([
+        db.getRooms().catch(e => { errors.push(`rooms: ${e?.message ?? e}`); return []; }),
+        db.getInspirations().catch(e => { errors.push(`inspirations: ${e?.message ?? e}`); return []; }),
+        db.getProducts().catch(e => { errors.push(`products: ${e?.message ?? e}`); return []; }),
+        db.getPalettes().catch(e => { errors.push(`palettes: ${e?.message ?? e}`); return []; }),
+        db.getBudgetItems().catch(e => { errors.push(`budget: ${e?.message ?? e}`); return []; }),
+        db.getFloorplans().catch(e => { errors.push(`floorplans: ${e?.message ?? e}`); return []; }),
+        db.getTodos().catch(e => { errors.push(`todos: ${e?.message ?? e}`); return []; }),
+        db.getCostItems().catch(e => { errors.push(`costs: ${e?.message ?? e}`); return []; }),
+        db.getCalendarEvents().catch(e => { errors.push(`calendar: ${e?.message ?? e}`); return []; }),
+      ]);
+
+      setRooms(r as any); setInspirations(i as any); setProducts(p as any);
+      setPalettes(pal as any); setBudgetItems(b as any); setFloorplans(fp as any);
+      setTodos(td as any); setCostItems(ci as any); setCalEvents(ce as any);
+      if (errors.length) setLoadErrors(errors);
+      setLoading(false);
     }
     load();
   }, []);
@@ -138,6 +147,14 @@ export default function Home() {
       </div>
 
       <div className="main-content" style={{ flex: 1, overflow: 'auto' }}>
+        {loadErrors.length > 0 && (
+          <div style={{ background: '#FEF2F0', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 16px', margin: '16px 36px 0', fontSize: 12, color: '#B91C1C' }}>
+            <strong>⚠️ Some data failed to load:</strong>
+            <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+              {loadErrors.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          </div>
+        )}
         {page === 'dashboard' && (
           <Dashboard rooms={rooms} inspirations={inspirations} products={products} budgetItems={budgetItems} todos={todos} costItems={costItems} calEvents={calEvents} onNavigate={navigate} />
         )}

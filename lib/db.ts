@@ -3,9 +3,11 @@ import type { Room, Inspiration, Product, ColourPalette, BudgetItem, MoodboardIt
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 export const getRooms = async (): Promise<Room[]> => {
-  const { data, error } = await supabase.from('rooms').select('*').order('order').order('created_at');
+  // Try ordering by 'order' column (requires migration_v3), fall back to created_at
+  const { data, error } = await supabase.from('rooms').select('*').order('created_at');
   if (error) throw error;
-  return data;
+  // Sort by order field client-side if it exists
+  return (data ?? []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 };
 export const createRoom = async (room: Omit<Room, 'id' | 'created_at'>): Promise<Room> => {
   const { data, error } = await supabase.from('rooms').insert(room).select().single();
