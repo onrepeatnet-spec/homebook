@@ -148,6 +148,7 @@ export default function Home() {
             floorplans={floorplans}
             rooms={rooms}
             onFloorplanChange={(fp) => setFloorplans(prev => prev.map(f => f.id === fp.id ? fp : f))}
+            onRoomCreated={(room) => setRooms(prev => [...prev, room])}
           />
         )}
         {page === 'inspiration' && (

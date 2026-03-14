@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
+import { fmt } from '@/lib/currency';
 import type { CostItem, CostCategory } from '@/lib/types';
 
-const fmt = (n: number) => `€${Number(n).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 const CATEGORIES: CostCategory[] = [

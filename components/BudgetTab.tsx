@@ -2,9 +2,8 @@
 import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
+import { fmt } from '@/lib/currency';
 import type { BudgetItem } from '@/lib/types';
-
-const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Number(n).toLocaleString()}`;
 
 export default function BudgetTab({ items, roomId, allRooms, onAdd, onUpdate, onDelete }: {
   items: BudgetItem[];

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import ImageUpload from '@/components/ImageUpload';
+import ImagePicker from '@/components/ImagePicker';
 import { fetchMetadata } from '@/lib/metadata';
 import type { Inspiration } from '@/lib/types';
 
@@ -18,6 +19,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
   const [saving, setSaving]     = useState(false);
   const [fetching, setFetching] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'loading' | 'done' | 'failed'>('idle');
+  const [fetchedImages, setFetchedImages] = useState<string[]>([]);
   const [addTab, setAddTab]     = useState<'upload' | 'url' | 'link'>('upload');
   const [form, setForm]         = useState({
     image_url: '', source_url: '', source_name: '',
@@ -53,11 +55,14 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
     if (!form.source_url) return;
     setFetching(true);
     setFetchStatus('loading');
+    setFetchedImages([]);
     const meta = await fetchMetadata(form.source_url);
-    const gotSomething = meta.image || meta.title || meta.publisher;
+    const gotSomething = meta.image || meta.title || meta.publisher || (meta.images && meta.images.length > 0);
+    const allImages = meta.images ?? (meta.image ? [meta.image] : []);
+    setFetchedImages(allImages);
     setForm(f => ({
       ...f,
-      image_url:   meta.image   || f.image_url,
+      image_url:   allImages[0] || f.image_url,
       source_name: meta.title   || meta.publisher || f.source_name,
       notes:       meta.description ? f.notes || meta.description : f.notes,
     }));
@@ -193,16 +198,25 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
                 <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Page URL</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input className="input" placeholder="https://..." value={form.source_url}
-                    onChange={e => { setForm(f => ({ ...f, source_url: e.target.value })); setFetchStatus('idle'); }}
+                    onChange={e => { setForm(f => ({ ...f, source_url: e.target.value })); setFetchStatus('idle'); setFetchedImages([]); }}
                     onBlur={fetchLink} />
                   <button className="btn btn-primary" disabled={fetching || !form.source_url} onClick={fetchLink} style={{ flexShrink: 0, minWidth: 80 }}>
                     {fetching ? '…' : '✨ Fetch'}
                   </button>
                 </div>
-                {fetchStatus === 'done' && <p style={{ fontSize: 11, color: 'var(--green)', marginTop: 5 }}>✓ Info fetched — check below</p>}
-                {fetchStatus === 'failed' && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 5 }}>Could not fetch info from this URL — fill in manually below</p>}
+                {fetchStatus === 'done' && <p style={{ fontSize: 11, color: 'var(--green)', marginTop: 5 }}>✓ Info fetched — pick an image below</p>}
+                {fetchStatus === 'failed' && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 5 }}>Could not fetch from this URL — fill in manually below</p>}
                 {fetchStatus === 'idle' && <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>Paste a URL and click Fetch to auto-fill details</p>}
               </div>
+            )}
+
+            {/* Image picker — shown after fetch */}
+            {fetchedImages.length > 1 && (
+              <ImagePicker
+                images={fetchedImages}
+                selected={form.image_url}
+                onSelect={url => setForm(f => ({ ...f, image_url: url }))}
+              />
             )}
 
             {form.image_url && (

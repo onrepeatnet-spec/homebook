@@ -4,17 +4,18 @@ import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import ImageUpload from '@/components/ImageUpload';
 import type { Floorplan, FloorplanRoom, Room } from '@/lib/types';
-import { createFloorplan, updateFloorplan, deleteFloorplan } from '@/lib/db';
+import { createFloorplan, updateFloorplan, deleteFloorplan, createRoom } from '@/lib/db';
 
 const COLORS = ['#C17B4E','#6B7FA8','#4A7C6F','#8B6BAE','#5A8FA0','#B87065','#D4A843','#5C7A45'];
 
 type Point = { x: number; y: number };
 type Mode = 'view' | 'draw' | 'edit';
 
-export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanChange }: {
+export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanChange, onRoomCreated }: {
   floorplans: Floorplan[];
   rooms: Room[];
   onFloorplanChange: (fp: Floorplan) => void;
+  onRoomCreated: (room: Room) => void;
 }) {
   const [floorplans, setFloorplans] = useState<Floorplan[]>(initial);
   const [active, setActive]         = useState<Floorplan | null>(initial[0] ?? null);
@@ -108,17 +109,37 @@ export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanC
   // ─── Save new polygon ─────────────────────────────────────────────────────
   const saveLabel = async () => {
     if (!pendingPoly || !active) return;
-    const newRoom: FloorplanRoom = {
+    setSaving(true);
+
+    // If no existing room is linked, create a new Room in Supabase
+    let linkedRoomId: number | null = labelForm.room_id === '' ? null : Number(labelForm.room_id);
+    const roomName = labelForm.room_name || rooms.find(r => r.id === linkedRoomId)?.name || 'New Room';
+
+    if (!linkedRoomId && roomName) {
+      try {
+        const newRoom = await createRoom({
+          name: roomName,
+          description: '',
+          emoji: '🏠',
+          color: labelForm.color,
+        });
+        linkedRoomId = newRoom.id;
+        onRoomCreated(newRoom);
+      } catch { /* fall through with null room_id */ }
+    }
+
+    const newFpRoom: FloorplanRoom = {
       id: `fr_${Date.now()}`,
-      room_id: labelForm.room_id === '' ? null : Number(labelForm.room_id),
-      room_name: labelForm.room_name || rooms.find(r => r.id === Number(labelForm.room_id))?.name || 'Room',
+      room_id: linkedRoomId,
+      room_name: roomName,
       points: pendingPoly,
       color: labelForm.color,
     };
-    await persistRooms([...active.rooms, newRoom]);
+    await persistRooms([...active.rooms, newFpRoom]);
     setPendingPoly(null);
     setLabelModal(false);
     setLabelForm({ room_name: '', room_id: '', color: COLORS[0] });
+    setSaving(false);
   };
 
   const deleteRoomPoly = async (roomId: string) => {

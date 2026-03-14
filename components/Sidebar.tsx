@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Icon from './Icon';
+import SettingsModal from './SettingsModal';
 import type { Room, Product } from '@/lib/types';
 import type { Page } from '@/app/page';
 
@@ -23,6 +24,7 @@ export default function Sidebar({ page, rooms, products, onNavigate }: {
   onNavigate: (p: Page, roomId?: number) => void;
 }) {
   const [open, setOpen] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <div style={{ width: open ? 220 : 60, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', transition: 'width 0.2s ease', overflow: 'hidden', height: '100vh' }}>
@@ -68,11 +70,22 @@ export default function Sidebar({ page, rooms, products, onNavigate }: {
 
       {open && (
         <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center', marginBottom: 8 }}>
             {rooms.length} rooms · {products.length} products
           </div>
+          <button className="nav-item" style={{ justifyContent: 'center', fontSize: 12 }} onClick={() => setShowSettings(true)}>
+            <Icon name="sparkles" size={14} /> Settings
+          </button>
         </div>
       )}
+      {!open && (
+        <div style={{ padding: '12px 10px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+          <button className="nav-item" style={{ justifyContent: 'center', padding: '8px' }} onClick={() => setShowSettings(true)}>
+            <Icon name="sparkles" size={15} />
+          </button>
+        </div>
+      )}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

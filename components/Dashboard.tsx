@@ -1,10 +1,8 @@
 'use client';
 import Icon from '@/components/Icon';
+import { fmt } from '@/lib/currency';
 import type { Room, Inspiration, Product, BudgetItem, Todo, CostItem, CalendarEvent } from '@/lib/types';
 import type { Page } from '@/app/page';
-
-const fmt  = (n: number | null | undefined) => n == null ? '—' : `$${Number(n).toLocaleString()}`;
-const fmtE = (n: number) => `€${Number(n).toLocaleString('pt-PT', { minimumFractionDigits: 0 })}`;
 
 function greeting() {
   const h = new Date().getHours();
@@ -138,7 +136,7 @@ export default function Dashboard({ rooms, inspirations, products, budgetItems, 
                   View →
                 </button>
               </div>
-              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 300, marginTop: 4 }}>{fmtE(totalCosts)}</p>
+              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 300, marginTop: 4 }}>{fmt(totalCosts)}</p>
             </div>
           )}
         </div>

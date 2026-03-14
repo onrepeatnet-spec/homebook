@@ -10,20 +10,20 @@ export default function NotesTab({ roomId }: { roomId: number }) {
   const [loaded, setLoaded]   = useState(false);
 
   // Load note from Supabase
-useEffect(() => {
-  async function load() {
-    try {
-      const { data } = await supabase.from('notes').select('content').eq('room_id', roomId).single();
-      if (data) setContent(data.content);
-      else setContent(`## Notes\n\nStart writing your design notes for this room…\n\n- Add furniture ideas\n- Colour thoughts\n- Measurements to take`);
-    } catch {
-      setContent(`## Notes\n\nStart writing your design notes for this room…`);
-    } finally {
-      setLoaded(true);
+  useEffect(() => {
+    async function load() {
+      try {
+        const { data } = await supabase.from('notes').select('content').eq('room_id', roomId).single();
+        if (data) setContent(data.content);
+        else setContent(`## Notes\n\nStart writing your design notes for this room…\n\n- Add furniture ideas\n- Colour thoughts\n- Measurements to take`);
+      } catch {
+        setContent(`## Notes\n\nStart writing your design notes for this room…`);
+      } finally {
+        setLoaded(true);
+      }
     }
-  }
-  load();
-}, [roomId]);
+    load();
+  }, [roomId]);
 
   // Debounced auto-save
   useEffect(() => {

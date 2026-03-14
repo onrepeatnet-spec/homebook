@@ -3,10 +3,11 @@ import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import ImageUpload from '@/components/ImageUpload';
+import ImagePicker from '@/components/ImagePicker';
 import { fetchMetadata } from '@/lib/metadata';
+import { fmt } from '@/lib/currency';
 import type { Product } from '@/lib/types';
 
-const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Number(n).toLocaleString()}`;
 const statusColor = (s: string) => ({ Idea: 'badge-idea', Considering: 'badge-considering', Buying: 'badge-buying', Purchased: 'badge-purchased' }[s] ?? 'badge-idea');
 const STATUSES = ['Idea', 'Considering', 'Buying', 'Purchased'] as const;
 type Status = typeof STATUSES[number];
@@ -35,18 +36,22 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
     .filter(p => filter === 'All' || p.status === filter);
 
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'loading' | 'done' | 'failed'>('idle');
+  const [fetchedImages, setFetchedImages] = useState<string[]>([]);
 
   const fetchFromLink = async () => {
     if (!form.url) return;
     setFetching(true);
     setFetchStatus('loading');
+    setFetchedImages([]);
     const meta = await fetchMetadata(form.url);
-    const gotSomething = meta.image || meta.title || meta.publisher;
+    const gotSomething = meta.image || meta.title || meta.publisher || (meta.images && meta.images.length > 0);
+    const allImages = meta.images ?? (meta.image ? [meta.image] : []);
+    setFetchedImages(allImages);
     setForm(f => ({
       ...f,
       name:  meta.title     || f.name,
       store: meta.publisher || f.store,
-      image: meta.image     || f.image,
+      image: allImages[0]   || f.image,
       price: meta.price     || f.price,
     }));
     setFetchStatus(gotSomething ? 'done' : 'failed');
@@ -167,15 +172,24 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input className="input" placeholder="https://…" value={form.url}
-                  onChange={e => { setForm(f => ({ ...f, url: e.target.value })); setFetchStatus('idle'); }} />
+                  onChange={e => { setForm(f => ({ ...f, url: e.target.value })); setFetchStatus('idle'); setFetchedImages([]); }} />
                 <button className="btn btn-primary" disabled={fetching || !form.url} onClick={fetchFromLink} style={{ flexShrink: 0, minWidth: 90 }}>
                   {fetching ? '…' : '✨ Fetch'}
                 </button>
               </div>
-              {fetchStatus === 'done' && <p style={{ fontSize: 11, color: 'var(--green)', marginTop: 5 }}>✓ Details fetched — check fields below</p>}
+              {fetchStatus === 'done' && <p style={{ fontSize: 11, color: 'var(--green)', marginTop: 5 }}>✓ Details fetched — pick an image below</p>}
               {fetchStatus === 'failed' && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 5 }}>Could not fetch from this URL — fill in manually</p>}
               {fetchStatus === 'idle' && addMode === 'link' && <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>Paste any product URL and click Fetch. Works on most furniture & decor stores.</p>}
             </div>
+
+            {/* Image picker — shown after fetch if multiple images found */}
+            {fetchedImages.length > 1 && (
+              <ImagePicker
+                images={fetchedImages}
+                selected={form.image}
+                onSelect={url => setForm(f => ({ ...f, image: url }))}
+              />
+            )}
 
             {/* Product image */}
             <div>

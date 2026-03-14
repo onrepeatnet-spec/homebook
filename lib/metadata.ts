@@ -1,14 +1,12 @@
 export type PageMeta = {
   title: string;
   image: string;
+  images: string[];  // multiple images to choose from
   description: string;
   publisher: string;
   price: string;
 };
 
-/**
- * Fetch page metadata via our own API route (avoids CORS issues with microlink.io).
- */
 export async function fetchMetadata(url: string): Promise<Partial<PageMeta>> {
   try {
     const res = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`);
