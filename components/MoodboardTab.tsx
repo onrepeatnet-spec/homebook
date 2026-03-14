@@ -4,19 +4,24 @@ import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import type { MoodboardItem } from '@/lib/types';
 import { upsertMoodboardItems } from '@/lib/db';
+import { uploadImage } from '@/lib/storage';
 
 export default function MoodboardTab({ roomId, initialItems }: {
   roomId: number;
   initialItems: MoodboardItem[];
 }) {
-  const [items, setItems]       = useState<MoodboardItem[]>(initialItems);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [offset, setOffset]     = useState({ x: 0, y: 0 });
-  const [showText, setShowText] = useState(false);
-  const [newText, setNewText]   = useState('');
-  const [saving, setSaving]     = useState(false);
+  const [items, setItems]         = useState<MoodboardItem[]>(initialItems);
+  const [selected, setSelected]   = useState<string | null>(null);
+  const [dragging, setDragging]   = useState<string | null>(null);
+  const [offset, setOffset]       = useState({ x: 0, y: 0 });
+  const [showText, setShowText]   = useState(false);
+  const [showImage, setShowImage] = useState(false);
+  const [newText, setNewText]     = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [uploading, setUploading] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const fileRef   = useRef<HTMLInputElement>(null);
 
   // Auto-save after 2s of inactivity
   useEffect(() => {
@@ -29,6 +34,37 @@ export default function MoodboardTab({ roomId, initialItems }: {
     return () => clearTimeout(t);
   }, [items, roomId]);
 
+  // Paste image from clipboard directly onto canvas
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Don't intercept paste when user is typing in a text field
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      const file = Array.from(e.clipboardData?.items ?? [])
+        .find(i => i.type.startsWith('image/'))?.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      setUploading(true);
+      try {
+        const url = await uploadImage(file, 'inspiration');
+        addImageItem(url);
+      } catch { /* silent */ }
+      finally { setUploading(false); }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
+
+  const addImageItem = (src: string) => {
+    setItems(prev => [...prev, {
+      id: `img_${Date.now()}`, type: 'image',
+      x: 60, y: 60, w: 260, h: 200,
+      room_id: roomId, src, label: '',
+    }]);
+  };
+
+  // Drag logic
   const startDrag = (e: React.MouseEvent | React.TouchEvent, id: string) => {
     e.stopPropagation();
     const el = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -42,8 +78,8 @@ export default function MoodboardTab({ roomId, initialItems }: {
   const onMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!dragging || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+    const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
+    const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
     const x = Math.max(0, clientX - rect.left - offset.x);
     const y = Math.max(0, clientY - rect.top - offset.y);
     setItems(prev => prev.map(it => it.id === dragging ? { ...it, x, y } : it));
@@ -66,12 +102,33 @@ export default function MoodboardTab({ roomId, initialItems }: {
 
   const addText = () => {
     if (!newText.trim()) return;
-    setItems(prev => [...prev, { id: `text_${Date.now()}`, type: 'text', x: 60, y: 60, w: 220, h: 80, room_id: roomId, text: newText }]);
+    setItems(prev => [...prev, {
+      id: `text_${Date.now()}`, type: 'text',
+      x: 60, y: 60, w: 220, h: 80, room_id: roomId, text: newText,
+    }]);
     setNewText(''); setShowText(false);
   };
 
   const addColour = () => {
-    setItems(prev => [...prev, { id: `col_${Date.now()}`, type: 'color', x: 120, y: 120, w: 110, h: 110, room_id: roomId, color: '#C17B4E', label: 'Colour' }]);
+    setItems(prev => [...prev, {
+      id: `col_${Date.now()}`, type: 'color',
+      x: 120, y: 120, w: 110, h: 110, room_id: roomId, color: '#C17B4E', label: 'Colour',
+    }]);
+  };
+
+  const addImageFromUrl = () => {
+    if (!newImageUrl.trim()) return;
+    addImageItem(newImageUrl.trim());
+    setNewImageUrl(''); setShowImage(false);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadImage(file, 'inspiration');
+      addImageItem(url);
+    } catch { /* silent */ }
+    finally { setUploading(false); setShowImage(false); }
   };
 
   const updateColour = (id: string, color: string) => {
@@ -87,6 +144,9 @@ export default function MoodboardTab({ roomId, initialItems }: {
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button className="btn btn-ghost" onClick={() => setShowImage(true)}>
+          <Icon name="image" size={14} /> Add Image
+        </button>
         <button className="btn btn-ghost" onClick={() => setShowText(true)}>
           <Icon name="fileText" size={14} /> Add Text
         </button>
@@ -99,9 +159,14 @@ export default function MoodboardTab({ roomId, initialItems }: {
           </button>
         )}
         <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }}>
-          {saving ? '💾 Saving…' : '✓ Saved'}
+          {uploading ? '⬆️ Uploading…' : saving ? '💾 Saving…' : '✓ Saved'}
         </div>
       </div>
+
+      {/* Paste hint */}
+      <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 12 }}>
+        💡 You can paste an image directly with <kbd style={{ background: 'var(--bg)', padding: '1px 5px', borderRadius: 4, border: '1px solid var(--border)', fontSize: 11 }}>⌘V</kbd> to add it to the canvas
+      </p>
 
       <div
         className="moodboard-canvas"
@@ -118,11 +183,11 @@ export default function MoodboardTab({ roomId, initialItems }: {
             onClick={(e) => { e.stopPropagation(); setSelected(item.id); }}
           >
             {item.type === 'image' && (
-              <div style={{ width: '100%', height: '100%', overflow: 'hidden', borderRadius: 8 }}>
+              <div style={{ width: '100%', height: '100%', overflow: 'hidden', borderRadius: 8, position: 'relative' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', userSelect: 'none' }} />
+                <img src={item.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', userSelect: 'none', display: 'block' }} />
                 {item.label && (
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.45)', color: 'white', fontSize: 11, padding: '4px 8px', borderRadius: '0 0 8px 8px' }}>
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.45)', color: 'white', fontSize: 11, padding: '4px 8px' }}>
                     {item.label}
                   </div>
                 )}
@@ -152,11 +217,53 @@ export default function MoodboardTab({ roomId, initialItems }: {
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
             <Icon name="layers" size={40} color="var(--border-dark)" />
             <p style={{ marginTop: 12, fontSize: 14 }}>Your moodboard canvas is empty</p>
-            <p style={{ fontSize: 12, marginTop: 4 }}>Add text blocks and colour swatches above</p>
+            <p style={{ fontSize: 12, marginTop: 4 }}>Add images, text blocks and colour swatches above · or paste an image with ⌘V</p>
           </div>
         )}
       </div>
 
+      {/* Add Image modal */}
+      {showImage && (
+        <Modal title="Add Image to Moodboard" onClose={() => setShowImage(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Upload */}
+            <div
+              style={{ border: '2px dashed var(--border-dark)', borderRadius: 10, padding: 28, textAlign: 'center', cursor: 'pointer', color: 'var(--text-3)', transition: 'var(--transition)' }}
+              onClick={() => fileRef.current?.click()}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-dark)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) handleFileUpload(f); }}
+            >
+              <Icon name="upload" size={24} />
+              <p style={{ marginTop: 10, fontSize: 13 }}>{uploading ? 'Uploading…' : 'Click to upload or drag & drop'}</p>
+              <p style={{ fontSize: 11, marginTop: 4 }}>Or paste with ⌘V anywhere</p>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>or paste a URL</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="input" placeholder="https://…" value={newImageUrl}
+                onChange={e => setNewImageUrl(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addImageFromUrl()} />
+              <button className="btn btn-primary" disabled={!newImageUrl} onClick={addImageFromUrl}>Add</button>
+            </div>
+
+            {newImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={newImageUrl} alt="preview" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 8 }} />
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Text modal */}
       {showText && (
         <Modal title="Add Text Block" onClose={() => setShowText(false)}>
           <textarea className="input" rows={3} placeholder="Write a design note or annotation…"

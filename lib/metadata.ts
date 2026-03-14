@@ -1,7 +1,3 @@
-/**
- * Fetch page metadata (title, image, description) from a URL
- * using the free microlink.io API.
- */
 export type PageMeta = {
   title: string;
   image: string;
@@ -10,20 +6,14 @@ export type PageMeta = {
   price: string;
 };
 
+/**
+ * Fetch page metadata via our own API route (avoids CORS issues with microlink.io).
+ */
 export async function fetchMetadata(url: string): Promise<Partial<PageMeta>> {
   try {
-    const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}&palette=false&audio=false&video=false&iframe=false`;
-    const res = await fetch(endpoint);
+    const res = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`);
     if (!res.ok) return {};
-    const json = await res.json();
-    const d = json.data ?? {};
-    return {
-      title:       d.title       ?? '',
-      image:       d.image?.url  ?? d.logo?.url ?? '',
-      description: d.description ?? '',
-      publisher:   d.publisher   ?? new URL(url).hostname.replace('www.', ''),
-      price:       d.price?.amount ? String(d.price.amount) : '',
-    };
+    return await res.json();
   } catch {
     return {};
   }

@@ -17,6 +17,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
   const [showAdd, setShowAdd]   = useState(false);
   const [saving, setSaving]     = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState<'idle' | 'loading' | 'done' | 'failed'>('idle');
   const [addTab, setAddTab]     = useState<'upload' | 'url' | 'link'>('upload');
   const [form, setForm]         = useState({
     image_url: '', source_url: '', source_name: '',
@@ -51,13 +52,16 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
   const fetchLink = async () => {
     if (!form.source_url) return;
     setFetching(true);
+    setFetchStatus('loading');
     const meta = await fetchMetadata(form.source_url);
+    const gotSomething = meta.image || meta.title || meta.publisher;
     setForm(f => ({
       ...f,
       image_url:   meta.image   || f.image_url,
       source_name: meta.title   || meta.publisher || f.source_name,
       notes:       meta.description ? f.notes || meta.description : f.notes,
     }));
+    setFetchStatus(gotSomething ? 'done' : 'failed');
     setFetching(false);
   };
 
@@ -69,7 +73,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
         image_url:   form.image_url,
         source_url:  form.source_url,
         source_name: form.source_name,
-        room_id: form.room_id || roomId || (allRooms?.[0]?.id ?? 1),
+        room_id:     form.room_id || roomId || (allRooms?.[0]?.id ?? 1),
         tags:        form.tags.split(',').map(t => t.trim()).filter(Boolean),
         notes:       form.notes,
       });
@@ -189,13 +193,15 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
                 <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Page URL</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input className="input" placeholder="https://..." value={form.source_url}
-                    onChange={e => setForm(f => ({ ...f, source_url: e.target.value }))}
+                    onChange={e => { setForm(f => ({ ...f, source_url: e.target.value })); setFetchStatus('idle'); }}
                     onBlur={fetchLink} />
-                  <button className="btn btn-ghost" disabled={fetching} onClick={fetchLink} style={{ flexShrink: 0 }}>
-                    {fetching ? '…' : 'Fetch'}
+                  <button className="btn btn-primary" disabled={fetching || !form.source_url} onClick={fetchLink} style={{ flexShrink: 0, minWidth: 80 }}>
+                    {fetching ? '…' : '✨ Fetch'}
                   </button>
                 </div>
-                <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>We'll try to pull a thumbnail and name automatically.</p>
+                {fetchStatus === 'done' && <p style={{ fontSize: 11, color: 'var(--green)', marginTop: 5 }}>✓ Info fetched — check below</p>}
+                {fetchStatus === 'failed' && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 5 }}>Could not fetch info from this URL — fill in manually below</p>}
+                {fetchStatus === 'idle' && <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>Paste a URL and click Fetch to auto-fill details</p>}
               </div>
             )}
 

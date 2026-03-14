@@ -55,8 +55,6 @@ export default function Home() {
     if (roomId) setActiveRoomId(roomId);
   };
 
-  const reloadRooms = async () => setRooms(await db.getRooms());
-
   const actions = {
     add: {
       room: async (data: Omit<Room, 'id' | 'created_at'>) => {
@@ -136,7 +134,7 @@ export default function Home() {
 
       <div className="main-content" style={{ flex: 1, overflow: 'auto' }}>
         {page === 'dashboard' && (
-          <Dashboard rooms={rooms} inspirations={inspirations} products={products} budgetItems={budgetItems} onNavigate={navigate} />
+          <Dashboard rooms={rooms} inspirations={inspirations} products={products} budgetItems={budgetItems} todos={todos} costItems={costItems} calEvents={calEvents} onNavigate={navigate} />
         )}
         {page === 'rooms' && (
           <AllRoomsPage rooms={rooms} onNavigate={navigate} onAdd={actions.add.room} onUpdate={actions.update.room} />
@@ -146,7 +144,11 @@ export default function Home() {
             onAdd={actions.add} onUpdate={actions.update} onDelete={actions.delete} />
         )}
         {page === 'floorplans' && (
-          <FloorplanPage floorplans={floorplans} rooms={rooms} onRoomsChange={reloadRooms} />
+          <FloorplanPage
+            floorplans={floorplans}
+            rooms={rooms}
+            onFloorplanChange={(fp) => setFloorplans(prev => prev.map(f => f.id === fp.id ? fp : f))}
+          />
         )}
         {page === 'inspiration' && (
           <AllInspirationPage inspirations={inspirations} rooms={rooms} onAdd={actions.add.inspiration} onDelete={actions.delete.inspiration} />

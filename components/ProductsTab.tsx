@@ -34,10 +34,14 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
     .filter(p => !roomId || p.room_id === roomId)
     .filter(p => filter === 'All' || p.status === filter);
 
+  const [fetchStatus, setFetchStatus] = useState<'idle' | 'loading' | 'done' | 'failed'>('idle');
+
   const fetchFromLink = async () => {
     if (!form.url) return;
     setFetching(true);
+    setFetchStatus('loading');
     const meta = await fetchMetadata(form.url);
+    const gotSomething = meta.image || meta.title || meta.publisher;
     setForm(f => ({
       ...f,
       name:  meta.title     || f.name,
@@ -45,6 +49,7 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
       image: meta.image     || f.image,
       price: meta.price     || f.price,
     }));
+    setFetchStatus(gotSomething ? 'done' : 'failed');
     setFetching(false);
   };
 
@@ -162,12 +167,14 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input className="input" placeholder="https://…" value={form.url}
-                  onChange={e => setForm(f => ({ ...f, url: e.target.value }))} />
-                <button className="btn btn-ghost" disabled={fetching || !form.url} onClick={fetchFromLink} style={{ flexShrink: 0, minWidth: 70 }}>
+                  onChange={e => { setForm(f => ({ ...f, url: e.target.value })); setFetchStatus('idle'); }} />
+                <button className="btn btn-primary" disabled={fetching || !form.url} onClick={fetchFromLink} style={{ flexShrink: 0, minWidth: 90 }}>
                   {fetching ? '…' : '✨ Fetch'}
                 </button>
               </div>
-              {addMode === 'link' && <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>Paste any product URL and click Fetch to auto-fill details. Works on most furniture & decor stores.</p>}
+              {fetchStatus === 'done' && <p style={{ fontSize: 11, color: 'var(--green)', marginTop: 5 }}>✓ Details fetched — check fields below</p>}
+              {fetchStatus === 'failed' && <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 5 }}>Could not fetch from this URL — fill in manually</p>}
+              {fetchStatus === 'idle' && addMode === 'link' && <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>Paste any product URL and click Fetch. Works on most furniture & decor stores.</p>}
             </div>
 
             {/* Product image */}

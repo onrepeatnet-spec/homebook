@@ -1,12 +1,13 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import InspirationTab from '@/components/InspirationTab';
 import MoodboardTab from '@/components/MoodboardTab';
 import ProductsTab from '@/components/ProductsTab';
 import ColoursTab from '@/components/ColoursTab';
 import NotesTab from '@/components/NotesTab';
 import BudgetTab from '@/components/BudgetTab';
-import type { Room, Inspiration, Product, ColourPalette, BudgetItem } from '@/lib/types';
+import type { Room, Inspiration, Product, ColourPalette, BudgetItem, MoodboardItem } from '@/lib/types';
+import { getMoodboardItems } from '@/lib/db';
 
 const TABS = ['inspiration', 'moodboard', 'products', 'colours', 'notes', 'budget'] as const;
 type Tab = typeof TABS[number];
@@ -35,6 +36,17 @@ export default function RoomPage({ room, inspirations, products, palettes, budge
   };
 }) {
   const [tab, setTab] = useState<Tab>('inspiration');
+  const [moodboardItems, setMoodboardItems] = useState<MoodboardItem[]>([]);
+  const [moodboardLoaded, setMoodboardLoaded] = useState(false);
+
+  // Load moodboard items when that tab is first opened
+  useEffect(() => {
+    if (tab === 'moodboard' && !moodboardLoaded) {
+      getMoodboardItems(room.id)
+        .then(items => { setMoodboardItems(items); setMoodboardLoaded(true); })
+        .catch(() => setMoodboardLoaded(true));
+    }
+  }, [tab, room.id, moodboardLoaded]);
 
   const roomInspirations = inspirations.filter(i => i.room_id === room.id);
   const roomProducts     = products.filter(p => p.room_id === room.id);
@@ -80,7 +92,9 @@ export default function RoomPage({ room, inspirations, products, palettes, budge
         />
       )}
       {tab === 'moodboard' && (
-        <MoodboardTab roomId={room.id} initialItems={[]} />
+        moodboardLoaded
+          ? <MoodboardTab roomId={room.id} initialItems={moodboardItems} />
+          : <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>Loading moodboard…</div>
       )}
       {tab === 'products' && (
         <ProductsTab

@@ -9,11 +9,12 @@ import { createFloorplan, updateFloorplan, deleteFloorplan } from '@/lib/db';
 const COLORS = ['#C17B4E','#6B7FA8','#4A7C6F','#8B6BAE','#5A8FA0','#B87065','#D4A843','#5C7A45'];
 
 type Point = { x: number; y: number };
+type Mode = 'view' | 'draw' | 'edit';
 
-export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChange }: {
+export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanChange }: {
   floorplans: Floorplan[];
   rooms: Room[];
-  onRoomsChange: () => void;
+  onFloorplanChange: (fp: Floorplan) => void;
 }) {
   const [floorplans, setFloorplans] = useState<Floorplan[]>(initial);
   const [active, setActive]         = useState<Floorplan | null>(initial[0] ?? null);
@@ -21,18 +22,25 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
   const [newName, setNewName]       = useState('');
   const [newImage, setNewImage]     = useState('');
   const [saving, setSaving]         = useState(false);
+  const [mode, setMode]             = useState<Mode>('view');
 
-  // Drawing state
-  const [drawing, setDrawing]       = useState(false);
-  const [currentPts, setCurrentPts] = useState<Point[]>([]);
-  const [hoverPt, setHoverPt]       = useState<Point | null>(null);
+  // Draw state
+  const [currentPts, setCurrentPts]   = useState<Point[]>([]);
+  const [hoverPt, setHoverPt]         = useState<Point | null>(null);
+
+  // Edit state — dragging a vertex
+  const [editingRoom, setEditingRoom]   = useState<string | null>(null); // room id
+  const [editingVertex, setEditingVertex] = useState<number | null>(null); // vertex index
   const [selectedRoom, setSelectedRoom] = useState<FloorplanRoom | null>(null);
+
+  // Label modal
   const [labelModal, setLabelModal] = useState(false);
   const [pendingPoly, setPendingPoly] = useState<Point[] | null>(null);
   const [labelForm, setLabelForm]   = useState({ room_name: '', room_id: '' as string | number, color: COLORS[0] });
 
   const imgRef = useRef<HTMLDivElement>(null);
 
+  // ─── Coordinate helpers ───────────────────────────────────────────────────
   const getRelPos = (e: React.MouseEvent): Point => {
     const rect = imgRef.current!.getBoundingClientRect();
     return {
@@ -41,18 +49,29 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
     };
   };
 
+  // ─── Persist helper ───────────────────────────────────────────────────────
+  const persistRooms = async (newRooms: FloorplanRoom[]) => {
+    if (!active) return;
+    setSaving(true);
+    try {
+      const saved = await updateFloorplan(active.id, { rooms: newRooms });
+      setActive(saved);
+      setFloorplans(prev => prev.map(f => f.id === saved.id ? saved : f));
+      onFloorplanChange(saved);
+    } finally { setSaving(false); }
+  };
+
+  // ─── Draw mode handlers ───────────────────────────────────────────────────
   const handleCanvasClick = (e: React.MouseEvent) => {
-    if (!drawing) return;
+    if (mode !== 'draw') return;
     const pt = getRelPos(e);
 
-    // Close polygon if clicking near first point (within 2%)
     if (currentPts.length >= 3) {
       const first = currentPts[0];
-      const dist = Math.hypot(pt.x - first.x, pt.y - first.y);
-      if (dist < 2.5) {
+      if (Math.hypot(pt.x - first.x, pt.y - first.y) < 2.5) {
         setPendingPoly(currentPts);
         setCurrentPts([]);
-        setDrawing(false);
+        setMode('view');
         setLabelModal(true);
         return;
       }
@@ -61,10 +80,32 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!drawing) return;
-    setHoverPt(getRelPos(e));
+    if (mode === 'draw') setHoverPt(getRelPos(e));
+
+    // Drag vertex in edit mode
+    if (mode === 'edit' && editingRoom && editingVertex !== null) {
+      const pt = getRelPos(e);
+      if (!active) return;
+      const newRooms = active.rooms.map(r => {
+        if (r.id !== editingRoom) return r;
+        const pts = [...r.points];
+        pts[editingVertex] = pt;
+        return { ...r, points: pts };
+      });
+      // Optimistic local update (no save yet — save on mouseup)
+      setActive(prev => prev ? { ...prev, rooms: newRooms } : prev);
+    }
   };
 
+  const handleMouseUp = async (e: React.MouseEvent) => {
+    if (mode === 'edit' && editingRoom && editingVertex !== null && active) {
+      setEditingVertex(null);
+      setEditingRoom(null);
+      await persistRooms(active.rooms);
+    }
+  };
+
+  // ─── Save new polygon ─────────────────────────────────────────────────────
   const saveLabel = async () => {
     if (!pendingPoly || !active) return;
     const newRoom: FloorplanRoom = {
@@ -74,26 +115,19 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
       points: pendingPoly,
       color: labelForm.color,
     };
-    const updated = { ...active, rooms: [...active.rooms, newRoom] };
-    setSaving(true);
-    const saved = await updateFloorplan(active.id, { rooms: updated.rooms });
-    setActive(saved);
-    setFloorplans(prev => prev.map(f => f.id === saved.id ? saved : f));
+    await persistRooms([...active.rooms, newRoom]);
     setPendingPoly(null);
     setLabelModal(false);
     setLabelForm({ room_name: '', room_id: '', color: COLORS[0] });
-    setSaving(false);
   };
 
   const deleteRoomPoly = async (roomId: string) => {
     if (!active) return;
-    const updated = { ...active, rooms: active.rooms.filter(r => r.id !== roomId) };
-    const saved = await updateFloorplan(active.id, { rooms: updated.rooms });
-    setActive(saved);
-    setFloorplans(prev => prev.map(f => f.id === saved.id ? saved : f));
+    await persistRooms(active.rooms.filter(r => r.id !== roomId));
     setSelectedRoom(null);
   };
 
+  // ─── Add floorplan ────────────────────────────────────────────────────────
   const addFloorplan = async () => {
     if (!newImage) return;
     setSaving(true);
@@ -112,27 +146,38 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
     setActive(remaining[0] ?? null);
   };
 
-  // Build SVG polyline from current points + hover
-  const previewPoints = hoverPt ? [...currentPts, hoverPt] : currentPts;
+  const previewPoints = hoverPt && mode === 'draw' ? [...currentPts, hoverPt] : currentPts;
   const toSvgPts = (pts: Point[]) => pts.map(p => `${p.x},${p.y}`).join(' ');
 
   return (
     <div style={{ padding: '28px 36px' }} className="animate-in">
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, fontWeight: 300 }}>Floorplans</h1>
           <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 4 }}>Upload a plan and trace your rooms</p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {active && !drawing && (
-            <button className="btn btn-ghost" onClick={() => { setDrawing(true); setCurrentPts([]); }}>
-              ✏️ Draw Room
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {active && mode === 'view' && (
+            <>
+              <button className="btn btn-ghost" onClick={() => { setMode('draw'); setCurrentPts([]); }}>
+                ✏️ Draw Room
+              </button>
+              <button className="btn btn-ghost" onClick={() => setMode('edit')}>
+                🔧 Edit Shapes
+              </button>
+            </>
+          )}
+          {mode === 'draw' && (
+            <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }}
+              onClick={() => { setMode('view'); setCurrentPts([]); setHoverPt(null); }}>
+              Cancel Drawing
             </button>
           )}
-          {drawing && (
-            <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }}
-              onClick={() => { setDrawing(false); setCurrentPts([]); }}>
-              Cancel Drawing
+          {mode === 'edit' && (
+            <button className="btn btn-ghost" style={{ color: 'var(--green)', borderColor: 'var(--green)' }}
+              onClick={() => { setMode('view'); setEditingRoom(null); setEditingVertex(null); }}>
+              ✓ Done Editing
             </button>
           )}
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
@@ -141,11 +186,22 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
         </div>
       </div>
 
+      {/* Mode hint */}
+      {active && (
+        <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--text-3)', minHeight: 20 }}>
+          {mode === 'draw' && currentPts.length === 0 && '🖱 Click to place the first point of the room polygon'}
+          {mode === 'draw' && currentPts.length > 0 && currentPts.length < 3 && `${currentPts.length} point${currentPts.length > 1 ? 's' : ''} — keep clicking to trace the shape`}
+          {mode === 'draw' && currentPts.length >= 3 && '🖱 Click near the first point ● to close the polygon'}
+          {mode === 'edit' && '🔧 Drag the corner points ● to reshape any room'}
+          {mode === 'view' && saving && '💾 Saving…'}
+        </div>
+      )}
+
       {/* Floorplan tabs */}
       {floorplans.length > 1 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           {floorplans.map(fp => (
-            <button key={fp.id} onClick={() => setActive(fp)}
+            <button key={fp.id} onClick={() => { setActive(fp); setMode('view'); }}
               style={{ fontSize: 12, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--border)', background: active?.id === fp.id ? 'var(--accent)' : 'var(--surface)', color: active?.id === fp.id ? 'white' : 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
               {fp.name}
             </button>
@@ -157,65 +213,73 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
         <div className="card" style={{ padding: '60px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 8 }}>No floorplans yet</p>
-          <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 20 }}>Upload a floorplan image to get started</p>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}>Upload Floorplan</button>
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 20 }}>
           {/* Canvas */}
-          <div style={{ flex: 1, position: 'relative' }}>
-            {drawing && (
-              <div style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, color: 'var(--accent-dark)' }}>
-                {currentPts.length === 0
-                  ? '🖱 Click to place the first point of the room polygon'
-                  : currentPts.length < 3
-                  ? `🖱 ${currentPts.length} point${currentPts.length > 1 ? 's' : ''} placed — keep clicking to trace the room shape`
-                  : '🖱 Click near the first point (●) to close the polygon'}
-              </div>
-            )}
-
+          <div style={{ flex: 1 }}>
             <div
               ref={imgRef}
-              style={{ position: 'relative', cursor: drawing ? 'crosshair' : 'default', borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow-lg)', userSelect: 'none' }}
+              style={{
+                position: 'relative',
+                cursor: mode === 'draw' ? 'crosshair' : mode === 'edit' ? 'default' : 'default',
+                borderRadius: 12, overflow: 'hidden',
+                boxShadow: 'var(--shadow-lg)', userSelect: 'none',
+              }}
               onClick={handleCanvasClick}
               onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={active.image_url} alt="Floorplan" style={{ width: '100%', display: 'block' }} draggable={false} />
 
-              {/* SVG overlay */}
-              <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }} viewBox="0 0 100 100" preserveAspectRatio="none">
+              <svg
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
+                viewBox="0 0 100 100" preserveAspectRatio="none"
+              >
                 {/* Saved rooms */}
-                {active.rooms.map(room => (
-                  <g key={room.id} onClick={(e) => { e.stopPropagation(); if (!drawing) setSelectedRoom(room); }}>
-                    <polygon
-                      points={toSvgPts(room.points)}
-                      fill={room.color + '40'}
-                      stroke={room.color}
-                      strokeWidth="0.4"
-                      style={{ cursor: drawing ? 'crosshair' : 'pointer', transition: 'fill 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.fill = room.color + '70')}
-                      onMouseLeave={e => (e.currentTarget.style.fill = room.color + '40')}
-                    />
-                    {/* Label at centroid */}
-                    {(() => {
-                      const cx = room.points.reduce((s, p) => s + p.x, 0) / room.points.length;
-                      const cy = room.points.reduce((s, p) => s + p.y, 0) / room.points.length;
-                      return (
-                        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
-                          fill={room.color} fontSize="2.2" fontWeight="600" fontFamily="DM Sans, sans-serif"
-                          style={{ pointerEvents: 'none' }}>
-                          {room.room_name}
-                        </text>
-                      );
-                    })()}
-                    {/* First point indicator */}
-                    <circle cx={room.points[0].x} cy={room.points[0].y} r="0.8" fill={room.color} />
-                  </g>
-                ))}
+                {active.rooms.map(room => {
+                  const cx = room.points.reduce((s, p) => s + p.x, 0) / room.points.length;
+                  const cy = room.points.reduce((s, p) => s + p.y, 0) / room.points.length;
+                  return (
+                    <g key={room.id}>
+                      <polygon
+                        points={toSvgPts(room.points)}
+                        fill={room.color + '40'}
+                        stroke={room.color}
+                        strokeWidth="0.4"
+                        style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
+                        onClick={(e) => { if (mode === 'view') { e.stopPropagation(); setSelectedRoom(s => s?.id === room.id ? null : room); } }}
+                        onMouseEnter={e => { if (mode === 'view') (e.target as SVGElement).setAttribute('fill', room.color + '70'); }}
+                        onMouseLeave={e => { if (mode === 'view') (e.target as SVGElement).setAttribute('fill', room.color + '40'); }}
+                      />
+                      {/* Label */}
+                      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
+                        fill={room.color} fontSize="2.2" fontWeight="600" fontFamily="DM Sans, sans-serif"
+                        style={{ pointerEvents: 'none' }}>
+                        {room.room_name}
+                      </text>
+                      {/* Vertices — shown in edit mode */}
+                      {mode === 'edit' && room.points.map((pt, vi) => (
+                        <circle
+                          key={vi}
+                          cx={pt.x} cy={pt.y} r="1.4"
+                          fill="white" stroke={room.color} strokeWidth="0.4"
+                          style={{ cursor: 'grab' }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setEditingRoom(room.id);
+                            setEditingVertex(vi);
+                          }}
+                        />
+                      ))}
+                    </g>
+                  );
+                })}
 
-                {/* Drawing preview */}
-                {currentPts.length > 0 && (
+                {/* Draw preview */}
+                {mode === 'draw' && currentPts.length > 0 && (
                   <>
                     <polyline points={toSvgPts(previewPoints)} fill="none" stroke="var(--accent)" strokeWidth="0.5" strokeDasharray="1,0.5" />
                     {currentPts.map((pt, i) => (
@@ -230,14 +294,18 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
 
           {/* Room list sidebar */}
           <div style={{ width: 220, flexShrink: 0 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 12 }}>Mapped Rooms</p>
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 12 }}>
+              Mapped Rooms
+            </p>
             {active.rooms.length === 0 ? (
-              <p style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.5 }}>No rooms drawn yet. Click "Draw Room" and trace a polygon.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.5 }}>
+                No rooms drawn yet. Click "Draw Room" and trace a polygon on the floorplan.
+              </p>
             ) : (
               active.rooms.map(room => (
                 <div key={room.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, marginBottom: 6, background: selectedRoom?.id === room.id ? 'var(--accent-light)' : 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }}
-                  onClick={() => setSelectedRoom(selectedRoom?.id === room.id ? null : room)}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, marginBottom: 6, background: selectedRoom?.id === room.id ? 'var(--accent-light)' : 'var(--surface)', border: `1px solid ${selectedRoom?.id === room.id ? 'var(--accent)' : 'var(--border)'}`, cursor: 'pointer', transition: 'var(--transition)' }}
+                  onClick={() => setSelectedRoom(s => s?.id === room.id ? null : room)}>
                   <div style={{ width: 12, height: 12, borderRadius: 3, background: room.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 13, flex: 1 }}>{room.room_name}</span>
                   {selectedRoom?.id === room.id && (
@@ -249,7 +317,11 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
                 </div>
               ))
             )}
+
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <p style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10 }}>
+                {saving ? '💾 Saving…' : active.rooms.length > 0 ? '✓ All rooms saved' : ''}
+              </p>
               <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', color: 'var(--red)', borderColor: 'var(--red)', fontSize: 12 }}
                 onClick={() => removeFloorplan(active.id)}>
                 <Icon name="trash" size={13} /> Delete floorplan
@@ -271,7 +343,7 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
                   const rm = rooms.find(r => r.id === Number(id));
                   setLabelForm(f => ({ ...f, room_id: id, room_name: rm?.name ?? f.room_name }));
                 }}>
-                <option value="">— New room —</option>
+                <option value="">— New / custom label —</option>
                 {rooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
               </select>
             </div>
@@ -282,7 +354,7 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 8 }}>Colour</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setLabelForm(f => ({ ...f, color: c }))}
                     style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: `3px solid ${labelForm.color === c ? 'var(--text)' : 'transparent'}`, cursor: 'pointer' }} />
@@ -291,7 +363,9 @@ export default function FloorplanPage({ floorplans: initial, rooms, onRoomsChang
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => { setLabelModal(false); setPendingPoly(null); }}>Cancel</button>
-              <button className="btn btn-primary" disabled={saving} onClick={saveLabel}>Save Room</button>
+              <button className="btn btn-primary" disabled={saving || (!labelForm.room_name && !labelForm.room_id)} onClick={saveLabel}>
+                {saving ? 'Saving…' : 'Save Room'}
+              </button>
             </div>
           </div>
         </Modal>
