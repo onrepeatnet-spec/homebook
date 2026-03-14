@@ -69,7 +69,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onDelet
         image_url:   form.image_url,
         source_url:  form.source_url,
         source_name: form.source_name,
-        room_id:     form.room_id || roomId || allRooms?.[0]?.id ?? 1,
+        room_id: form.room_id || roomId || (allRooms?.[0]?.id ?? 1),
         tags:        form.tags.split(',').map(t => t.trim()).filter(Boolean),
         notes:       form.notes,
       });
