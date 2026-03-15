@@ -24,6 +24,8 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onUpdat
   const [fetchedImages, setFetchedImages] = useState<string[]>([]);
   const [addTab, setAddTab]     = useState<'upload' | 'url' | 'link'>('upload');
   const [ctxMenu, setCtxMenu]   = useState<{ x: number; y: number; item: Inspiration } | null>(null);
+  const [editNotes, setEditNotes] = useState<Inspiration | null>(null);
+  const [editNotesVal, setEditNotesVal] = useState('');
   const [form, setForm]         = useState({
     image_url: '', source_url: '', source_name: '',
     tags: '', notes: '', room_id: roomId ?? 0,
@@ -129,7 +131,7 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onUpdat
                       ))}
                     </div>
                   )}
-                  {item.notes && <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 4 }}>{item.notes}</p>}
+                  {item.notes && <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>{item.notes}</p>}
                 </div>
               </div>
             </div>
@@ -320,12 +322,35 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onUpdat
         </Modal>
       )}
 
+      {/* Edit notes modal */}
+      {editNotes && (
+        <Modal title="Edit Notes" onClose={() => setEditNotes(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={editNotes.image_url} alt="" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 8 }} />
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Notes</label>
+              <textarea className="input" style={{ minHeight: 100 }} placeholder="Add notes about this image…"
+                value={editNotesVal} onChange={e => setEditNotesVal(e.target.value)} autoFocus />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setEditNotes(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={async () => {
+                if (onUpdate) await onUpdate(editNotes.id, { notes: editNotesVal });
+                setEditNotes(null);
+              }}>Save</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {ctxMenu && (
         <ContextMenu
           x={ctxMenu.x} y={ctxMenu.y}
           onClose={() => setCtxMenu(null)}
           items={[
             { label: 'View details', icon: '👁', onClick: () => setSelected(ctxMenu.item) },
+            { label: 'Edit notes', icon: '✏️', onClick: () => { setEditNotes(ctxMenu.item); setEditNotesVal(ctxMenu.item.notes ?? ''); } },
             { label: 'Open image', icon: '🔗', onClick: () => window.open(ctxMenu.item.image_url, '_blank') },
             { label: 'Remove', icon: '🗑', danger: true, onClick: () => onDelete(ctxMenu.item.id) },
           ]}
