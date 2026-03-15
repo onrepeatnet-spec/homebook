@@ -180,13 +180,13 @@ export default function Home() {
           <AllProductsPage products={products} rooms={rooms} onAdd={actions.add.product} onUpdate={actions.update.product} onDelete={actions.delete.product} />
         )}
         {page === 'budget' && (
-          <BudgetOverviewPage budgetItems={budgetItems} rooms={rooms} onAdd={actions.add.budget} onUpdate={actions.update.budget} onDelete={actions.delete.budget} />
+          <BudgetOverviewPage budgetItems={budgetItems} rooms={rooms} products={products} onAdd={actions.add.budget} onUpdate={actions.update.budget} onDelete={actions.delete.budget} />
         )}
         {page === 'todos' && (
           <TodoPage todos={todos} onAdd={actions.add.todo} onUpdate={actions.update.todo} onDelete={actions.delete.todo} />
         )}
         {page === 'costs' && (
-          <CostTrackerPage items={costItems} onAdd={actions.add.cost} onUpdate={actions.update.cost} onDelete={actions.delete.cost} />
+          <CostTrackerPage items={costItems} budgetItems={budgetItems} onAdd={actions.add.cost} onUpdate={actions.update.cost} onDelete={actions.delete.cost} />
         )}
         {page === 'calendar' && (
           <CalendarPage events={calEvents} todos={todos} onAdd={actions.add.calEvent} onUpdate={actions.update.calEvent} onDelete={actions.delete.calEvent} />

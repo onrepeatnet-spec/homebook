@@ -94,13 +94,13 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onUpdat
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <p style={{ fontSize: 13, color: 'var(--text-3)' }}>{filtered.length} image{filtered.length !== 1 ? 's' : ''}</p>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+        <button className="btn btn-primary" onClick={() => { setSelected(null); setShowAdd(true); }}>
           <Icon name="plus" size={14} /> Add Inspiration
         </button>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="upload-zone" onClick={() => setShowAdd(true)}>
+        <div className="upload-zone" onClick={() => { setSelected(null); setShowAdd(true); }}>
           <Icon name="image" size={32} />
           <p style={{ marginTop: 12, fontSize: 14 }}>Add your first inspiration image</p>
           <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>Upload, paste, or link</p>
@@ -137,56 +137,96 @@ export default function InspirationTab({ items, roomId, allRooms, onAdd, onUpdat
         </div>
       )}
 
-      {/* Detail panel */}
+      {/* Detail panel — fullscreen on mobile, side panel on desktop */}
       {selected && (
-        <div className="detail-panel">
-          <div style={{ position: 'relative' }}>
+        <>
+          {/* Mobile: fullscreen overlay */}
+          <div className="inspiration-mobile-overlay" onClick={() => setSelected(null)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={selected.image_url} alt="" style={{ width: '100%', maxHeight: 300, objectFit: 'cover', display: 'block' }} />
-            <button className="btn btn-ghost" style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.9)' }} onClick={() => setSelected(null)}>
-              <Icon name="x" size={14} />
+            <img src={selected.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+            <div className="inspiration-mobile-info" onClick={e => e.stopPropagation()}>
+              {selected.source_name && (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+                  {selected.source_url
+                    ? <a href={selected.source_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-light)', textDecoration: 'none' }}>🔗 {selected.source_name}</a>
+                    : selected.source_name}
+                </p>
+              )}
+              {selected.tags?.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {selected.tags.map(t => (
+                    <span key={t} style={{ fontSize: 11, background: 'rgba(255,255,255,0.15)', color: 'white', padding: '2px 8px', borderRadius: 10 }}>#{t}</span>
+                  ))}
+                </div>
+              )}
+              {selected.notes && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', lineHeight: 1.5, marginBottom: 10 }}>{selected.notes}</p>}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a href={selected.image_url} target="_blank" rel="noreferrer"
+                  style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.15)', borderRadius: 8, textAlign: 'center', color: 'white', fontSize: 13, textDecoration: 'none', backdropFilter: 'blur(8px)' }}>
+                  Open image ↗
+                </a>
+                <button style={{ padding: '10px 16px', background: 'rgba(220,50,50,0.8)', border: 'none', borderRadius: 8, color: 'white', fontSize: 13, cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+                  onClick={async () => { await onDelete(selected.id); setSelected(null); }}>
+                  Remove
+                </button>
+              </div>
+            </div>
+            <button style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}
+              onClick={() => setSelected(null)}>
+              <Icon name="x" size={16} color="white" />
             </button>
           </div>
-          <div style={{ padding: 24 }}>
-            {selected.source_name && (
-              <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10 }}>
-                {selected.source_url
-                  ? <a href={selected.source_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>🔗 {selected.source_name}</a>
-                  : selected.source_name}
-              </p>
-            )}
-            {selected.tags?.length > 0 && (
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
-                {selected.tags.map(t => (
-                  <span key={t} style={{ fontSize: 11, background: 'var(--accent-light)', color: 'var(--accent)', padding: '3px 8px', borderRadius: 10 }}>#{t}</span>
-                ))}
-              </div>
-            )}
-            {selected.notes && <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 16 }}>{selected.notes}</p>}
-            {allRooms && allRooms.length > 1 && (
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Move to room</label>
-                <select className="input" value={selected.room_id}
-                  onChange={async e => {
-                    const room_id = Number(e.target.value);
-                    if (onUpdate) {
-                      await onUpdate(selected.id, { room_id });
-                      setSelected(s => s ? { ...s, room_id } : null);
-                    }
-                  }}>
-                  {allRooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
-                </select>
-              </div>
-            )}
-            <a href={selected.image_url} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ display: 'flex', marginBottom: 10, textDecoration: 'none' }}>
-              <Icon name="eye" size={14} /> View full image
-            </a>
-            <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)', width: '100%', justifyContent: 'center' }}
-              onClick={async () => { await onDelete(selected.id); setSelected(null); }}>
-              <Icon name="trash" size={14} /> Remove
-            </button>
+
+          {/* Desktop: side panel */}
+          <div className="detail-panel inspiration-desktop-panel">
+            <div style={{ position: 'relative' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selected.image_url} alt="" style={{ width: '100%', maxHeight: 300, objectFit: 'cover', display: 'block' }} />
+              <button className="btn btn-ghost" style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.9)' }} onClick={() => setSelected(null)}>
+                <Icon name="x" size={14} />
+              </button>
+            </div>
+            <div style={{ padding: 24 }}>
+              {selected.source_name && (
+                <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10 }}>
+                  {selected.source_url
+                    ? <a href={selected.source_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>🔗 {selected.source_name}</a>
+                    : selected.source_name}
+                </p>
+              )}
+              {selected.tags?.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
+                  {selected.tags.map(t => (
+                    <span key={t} style={{ fontSize: 11, background: 'var(--accent-light)', color: 'var(--accent)', padding: '3px 8px', borderRadius: 10 }}>#{t}</span>
+                  ))}
+                </div>
+              )}
+              {selected.notes && <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 16 }}>{selected.notes}</p>}
+              {allRooms && allRooms.length > 1 && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Move to room</label>
+                  <select className="input" value={selected.room_id}
+                    onChange={async e => {
+                      const room_id = Number(e.target.value);
+                      if (onUpdate) {
+                        await onUpdate(selected.id, { room_id });
+                        setSelected(s => s ? { ...s, room_id } : null);
+                      }
+                    }}>
+                    {allRooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <a href={selected.image_url} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ display: 'flex', marginBottom: 10, textDecoration: 'none' }}>
+                <Icon name="eye" size={14} /> View full image
+              </a>
+              <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)', width: '100%', justifyContent: 'center' }}
+                onClick={async () => { await onDelete(selected.id); setSelected(null); }}>
+                <Icon name="trash" size={14} /> Remove
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Add modal */}

@@ -14,6 +14,7 @@ export default function MoodboardTab({ roomId, initialItems }: {
   const [selected, setSelected]   = useState<string | null>(null);
   const [dragging, setDragging]   = useState<string | null>(null);
   const [offset, setOffset]       = useState({ x: 0, y: 0 });
+  const [resizing, setResizing]   = useState<{ id: string; startX: number; startY: number; startW: number; startH: number } | null>(null);
   const [showImage, setShowImage] = useState(false);
   const [showText, setShowText]   = useState(false);
   const [showLink, setShowLink]   = useState(false);
@@ -89,7 +90,27 @@ export default function MoodboardTab({ roomId, initialItems }: {
     setOffset({ x: clientX - el.left, y: clientY - el.top });
   };
 
+  const startResize = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    setResizing({ id, startX: e.clientX, startY: e.clientY, startW: item.w, startH: item.h });
+    setSelected(id);
+  };
+
   const onMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (resizing) {
+      const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
+      const dw = clientX - resizing.startX;
+      const dh = clientY - resizing.startY;
+      const newW = Math.max(60, resizing.startW + dw);
+      const newH = Math.max(40, resizing.startH + dh);
+      setItems(prev => prev.map(it => it.id === resizing.id ? { ...it, w: newW, h: newH } : it));
+      setDirty(true);
+      return;
+    }
     if (!dragging || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
@@ -98,9 +119,9 @@ export default function MoodboardTab({ roomId, initialItems }: {
     const y = Math.max(0, clientY - rect.top - offset.y);
     setItems(prev => prev.map(it => it.id === dragging ? { ...it, x, y } : it));
     setDirty(true);
-  }, [dragging, offset]);
+  }, [dragging, resizing, offset]);
 
-  const endDrag = useCallback(() => setDragging(null), []);
+  const endDrag = useCallback(() => { setDragging(null); setResizing(null); }, []);
 
   useEffect(() => {
     window.addEventListener('mousemove', onMove);
@@ -279,6 +300,21 @@ export default function MoodboardTab({ roomId, initialItems }: {
                   </a>
                 )}
               </div>
+            )}
+            {/* Resize handle — bottom-right corner, only when selected */}
+            {selected === item.id && (
+              <div
+                onMouseDown={(e) => startResize(e, item.id)}
+                style={{
+                  position: 'absolute', bottom: -4, right: -4,
+                  width: 14, height: 14,
+                  background: 'var(--accent)',
+                  border: '2px solid white',
+                  borderRadius: 3,
+                  cursor: 'se-resize',
+                  zIndex: 10,
+                }}
+              />
             )}
           </div>
         ))}

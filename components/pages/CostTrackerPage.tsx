@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
 import { useCurrency } from '@/components/CurrencyContext';
-import type { CostItem, CostCategory } from '@/lib/types';
+import type { CostItem, CostCategory, BudgetItem } from '@/lib/types';
 
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
@@ -24,8 +24,9 @@ const CAT_INFO: Partial<Record<CostCategory, string>> = {
   'IMI': 'Imposto Municipal sobre Imóveis — annual property tax (0.3–0.45% of taxable value)',
 };
 
-export default function CostTrackerPage({ items, onAdd, onUpdate, onDelete }: {
+export default function CostTrackerPage({ items, budgetItems, onAdd, onUpdate, onDelete }: {
   items: CostItem[];
+  budgetItems: BudgetItem[];
   onAdd: (item: Omit<CostItem, 'id' | 'created_at'>) => Promise<void>;
   onUpdate: (id: number, updates: Partial<CostItem>) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
@@ -42,6 +43,11 @@ export default function CostTrackerPage({ items, onAdd, onUpdate, onDelete }: {
   const totalMonthly  = items.filter(i => i.recurring && i.recurring_period === 'monthly').reduce((s, i) => s + i.amount, 0);
   const totalYearly   = items.filter(i => i.recurring && i.recurring_period === 'yearly').reduce((s, i) => s + i.amount, 0);
   const grandTotal    = totalOneOff + totalYearly;
+
+  // Budget totals from the Budget section
+  const budgetEstimated = budgetItems.reduce((s, b) => s + (b.estimated_price || 0), 0);
+  const budgetSpent     = budgetItems.filter(b => b.purchased).reduce((s, b) => s + (b.actual_price ?? b.estimated_price ?? 0), 0);
+  const budgetPending   = budgetItems.filter(b => !b.purchased).reduce((s, b) => s + (b.estimated_price || 0), 0);
 
   const handleAdd = async () => {
     if (!form.name || !form.amount) return;
@@ -61,6 +67,27 @@ export default function CostTrackerPage({ items, onAdd, onUpdate, onDelete }: {
           <Icon name="plus" size={14} /> Add Cost
         </button>
       </div>
+
+      {/* Budget summary from Budget section */}
+      {budgetItems.length > 0 && (
+        <div style={{ marginBottom: 28, padding: '20px 24px', background: 'var(--accent-light)', borderRadius: 12, border: '1px solid var(--accent)' }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>
+            🛋 Interior Budget Summary
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+            {[
+              { label: 'Total Estimated', value: fmt(budgetEstimated), color: 'var(--text)' },
+              { label: 'Actually Spent',  value: fmt(budgetSpent),     color: 'var(--green)' },
+              { label: 'Still Pending',   value: fmt(budgetPending),   color: 'var(--accent)' },
+            ].map((s, i) => (
+              <div key={i}>
+                <p style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>{s.label}</p>
+                <p style={{ fontSize: 20, fontFamily: 'var(--font-serif)', fontWeight: 400, color: s.color }}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 32 }}>

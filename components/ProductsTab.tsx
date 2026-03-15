@@ -86,7 +86,7 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
             {s}
           </button>
         ))}
-        <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => setShowAdd(true)}>
+        <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => { setSelected(null); setShowAdd(true); }}>
           <Icon name="plus" size={14} /> Add Product
         </button>
       </div>

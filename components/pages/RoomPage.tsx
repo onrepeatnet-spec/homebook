@@ -122,6 +122,7 @@ export default function RoomPage({ room, rooms, inspirations, products, palettes
         <BudgetTab
           items={roomBudget}
           roomId={room.id}
+          products={roomProducts}
           onAdd={onAdd.budget}
           onUpdate={onUpdate.budget}
           onDelete={onDelete.budget}
