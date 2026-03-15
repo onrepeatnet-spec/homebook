@@ -18,7 +18,7 @@ const PRIORITY_COLORS: Record<TodoPriority, string> = {
 const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const isOverdue = (due: string | null) => due && new Date(due) < new Date() ? true : false;
 
-export default function TodoPage({ todos, onAdd, onUpdate, onDelete }: {
+export default function TodoPage({ todos = [], onAdd, onUpdate, onDelete }: {
   todos: Todo[];
   onAdd: (t: Omit<Todo, 'id' | 'created_at'>) => Promise<void>;
   onUpdate: (id: number, updates: Partial<Todo>) => Promise<void>;

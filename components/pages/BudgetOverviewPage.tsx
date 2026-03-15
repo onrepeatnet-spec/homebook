@@ -3,7 +3,7 @@ import { useState } from 'react';
 import BudgetTab from '@/components/BudgetTab';
 import type { BudgetItem, Room, Product } from '@/lib/types';
 
-export default function BudgetOverviewPage({ budgetItems, rooms, products, onAdd, onUpdate, onDelete }: {
+export default function BudgetOverviewPage({ budgetItems = [], rooms = [], products = [], onAdd, onUpdate, onDelete }: {
   budgetItems: BudgetItem[];
   rooms: Room[];
   products: Product[];

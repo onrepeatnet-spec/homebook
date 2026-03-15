@@ -11,7 +11,7 @@ const COLORS = ['#C17B4E','#6B7FA8','#4A7C6F','#8B6BAE','#5A8FA0','#B87065','#D4
 type Point = { x: number; y: number };
 type Mode = 'view' | 'draw' | 'edit';
 
-export default function FloorplanPage({ floorplans: initial, rooms, onFloorplanChange, onRoomCreated }: {
+export default function FloorplanPage({ floorplans: initial = [], rooms = [], onFloorplanChange, onRoomCreated }: {
   floorplans: Floorplan[];
   rooms: Room[];
   onFloorplanChange: (fp: Floorplan) => void;

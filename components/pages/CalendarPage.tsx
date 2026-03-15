@@ -18,7 +18,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 const DAYS   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const EVENT_TYPES: EventType[] = ['Delivery','Appointment','Tax Deadline','Task','Other'];
 
-export default function CalendarPage({ events, todos, onAdd, onUpdate, onDelete }: {
+export default function CalendarPage({ events = [], todos = [], onAdd, onUpdate, onDelete }: {
   events: CalendarEvent[];
   todos: Todo[];
   onAdd: (e: Omit<CalendarEvent, 'id' | 'created_at'>) => Promise<void>;

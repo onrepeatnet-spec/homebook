@@ -47,7 +47,7 @@ function RoomForm({ f, onChange }: { f: RFD; onChange: (u: Partial<RFD>) => void
   );
 }
 
-export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onUpdate, onDelete }: {
+export default function AllRoomsPage({ rooms = [], floorplans = [], onNavigate, onAdd, onUpdate, onDelete }: {
   rooms: Room[];
   floorplans: Floorplan[];
   onNavigate: (p: Page, roomId?: number) => void;

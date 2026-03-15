@@ -3,7 +3,7 @@ import { useState } from 'react';
 import ProductsTab from '@/components/ProductsTab';
 import type { Product, Room } from '@/lib/types';
 
-export default function AllProductsPage({ products, rooms, onAdd, onUpdate, onDelete }: {
+export default function AllProductsPage({ products = [], rooms = [], onAdd, onUpdate, onDelete }: {
   products: Product[];
   rooms?: Room[];
   onAdd: (p: Omit<Product, 'id' | 'created_at'>) => Promise<void>;

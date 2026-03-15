@@ -24,7 +24,7 @@ const CAT_INFO: Partial<Record<CostCategory, string>> = {
   'IMI': 'Imposto Municipal sobre Imóveis — annual property tax (0.3–0.45% of taxable value)',
 };
 
-export default function CostTrackerPage({ items, budgetItems, onAdd, onUpdate, onDelete }: {
+export default function CostTrackerPage({ items = [], budgetItems = [], onAdd, onUpdate, onDelete }: {
   items: CostItem[];
   budgetItems: BudgetItem[];
   onAdd: (item: Omit<CostItem, 'id' | 'created_at'>) => Promise<void>;

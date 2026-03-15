@@ -12,7 +12,7 @@ import { getMoodboardItems } from '@/lib/db';
 const TABS = ['inspiration', 'moodboard', 'products', 'colours', 'notes', 'budget'] as const;
 type Tab = typeof TABS[number];
 
-export default function RoomPage({ room, rooms, inspirations, products, palettes, budgetItems, onAdd, onUpdate, onDelete }: {
+export default function RoomPage({ room, rooms = [], inspirations = [], products = [], palettes = [], budgetItems = [], onAdd, onUpdate, onDelete }: {
   room: Room;
   rooms: Room[];
   inspirations: Inspiration[];
