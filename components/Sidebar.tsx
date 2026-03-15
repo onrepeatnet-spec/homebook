@@ -29,13 +29,7 @@ export default function Sidebar({ page, rooms, products, floorplans, onNavigate 
   const [showSettings, setShowSettings] = useState(false);
   const { currency } = useCurrency();
 
-  // Only show rooms that are mapped on a floorplan polygon
-  const mappedRoomIds = new Set(
-    floorplans.flatMap(fp => fp.rooms.map(r => r.room_id)).filter((id): id is number => id !== null)
-  );
-  const visibleRooms = floorplans.length > 0 && mappedRoomIds.size > 0
-    ? rooms.filter(r => mappedRoomIds.has(r.id))
-    : rooms;
+  const visibleRooms = rooms;
 
   return (
     <div style={{ width: open ? 220 : 60, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', transition: 'width 0.2s ease', overflow: 'hidden', height: '100vh' }}>
