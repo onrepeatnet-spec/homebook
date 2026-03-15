@@ -101,7 +101,7 @@ export default function DiscoverPage({ onAddEvent }: {
         notes: [market.location, market.city, notes].filter(Boolean).join(' · '),
         linked_todo_id: null,
       });
-      setAddedIds(prev => new Set([...prev, market.title + date]));
+      setAddedIds(prev => new Set(Array.from(prev).concat(market.title + date)));
       setAddingEvent(null);
     } finally {
       setSavingEvent(false);
