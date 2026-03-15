@@ -60,6 +60,7 @@ export default function DiscoverPage({ onAddEvent }: {
   const [addingEvent, setAddingEvent] = useState<MarketResult | null>(null);
   const [savingEvent, setSavingEvent] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const search = async () => {
     setLoading(true);
@@ -72,8 +73,9 @@ export default function DiscoverPage({ onAddEvent }: {
         body: JSON.stringify({ type: tab, city: city === 'All Portugal' ? null : city }),
       });
       const data = await res.json();
+      if (data.debug) setDebugInfo(data.debug);
       if (data.error && !data.results) {
-        setError(data.error);
+        setError(data.error + (data.raw ? `\n\nRaw: ${data.raw}` : ''));
       } else if (tab === 'markets') {
         // Sort by date
         const sorted = (data.results ?? []).sort((a: MarketResult, b: MarketResult) =>
