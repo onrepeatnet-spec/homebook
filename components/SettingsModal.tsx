@@ -18,7 +18,7 @@ const RATES_FROM_EUR: Record<string, number> = {
 };
 
 export default function SettingsModal({ onClose }: { onClose: () => void }) {
-  const { currency, exchangeRate, setCurrency } = useCurrency();
+  const { currency, exchangeRate, setCurrency, darkMode, toggleDark } = useCurrency();
   const [selected, setSelected] = useState(currency.code);
 
   // Work out current base-EUR rate to convert correctly
@@ -36,6 +36,27 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Settings" onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Dark mode */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500 }}>{darkMode ? '🌙 Dark Mode' : '☀️ Light Mode'}</p>
+            <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>Toggle the app appearance</p>
+          </div>
+          <button
+            onClick={toggleDark}
+            style={{
+              width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: darkMode ? 'var(--accent)' : 'var(--border-dark)',
+              position: 'relative', transition: 'background 0.2s ease', flexShrink: 0,
+            }}>
+            <span style={{
+              position: 'absolute', top: 3, left: darkMode ? 23 : 3,
+              width: 18, height: 18, borderRadius: '50%', background: 'white',
+              transition: 'left 0.2s ease', display: 'block',
+            }} />
+          </button>
+        </div>
+
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Currency

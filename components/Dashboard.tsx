@@ -4,11 +4,12 @@ import { useCurrency } from '@/components/CurrencyContext';
 import type { Room, Inspiration, Product, BudgetItem, Todo, CostItem, CalendarEvent } from '@/lib/types';
 import type { Page } from '@/app/page';
 
-function greeting() {
+function getTimeInfo() {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (h >= 5  && h < 12) return { greeting: 'Good morning', emoji: '🌅', headerBg: 'linear-gradient(135deg, rgba(255,200,100,0.10) 0%, transparent 60%)' };
+  if (h >= 12 && h < 17) return { greeting: 'Good afternoon', emoji: '☀️', headerBg: 'linear-gradient(135deg, rgba(255,160,50,0.08) 0%, transparent 60%)' };
+  if (h >= 17 && h < 21) return { greeting: 'Good evening', emoji: '🌆', headerBg: 'linear-gradient(135deg, rgba(180,80,30,0.10) 0%, transparent 60%)' };
+  return { greeting: 'Good night', emoji: '🌙', headerBg: 'linear-gradient(135deg, rgba(60,40,100,0.12) 0%, transparent 60%)' };
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -30,6 +31,7 @@ export default function Dashboard({ rooms, inspirations, products, budgetItems, 
   onNavigate: (p: Page, roomId?: number) => void;
 }) {
   const { fmt } = useCurrency();
+  const { greeting, emoji, headerBg } = getTimeInfo();
   const totalEst   = budgetItems.reduce((s, b) => s + (b.estimated_price || 0), 0);
   const totalSpent = budgetItems.filter(b => b.purchased).reduce((s, b) => s + (b.actual_price ?? b.estimated_price ?? 0), 0);
   const progress   = totalEst ? (totalSpent / totalEst) * 100 : 0;
@@ -47,7 +49,9 @@ export default function Dashboard({ rooms, inspirations, products, budgetItems, 
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 4);
 
-  const totalCosts = (costItems ?? []).reduce((s, c) => s + c.amount, 0);
+  const totalCosts    = (costItems ?? []).reduce((s, c) => s + c.amount, 0);
+  const totalEstimate = budgetItems.reduce((s, b) => s + (b.estimated_price || 0), 0);
+  const totalActual   = budgetItems.filter(b => b.purchased).reduce((s, b) => s + (b.actual_price ?? b.estimated_price ?? 0), 0);
 
   const stats = [
     { label: 'Rooms',        value: rooms.length,        icon: 'room'        as const, color: 'var(--accent)',  page: 'rooms'       as Page },
@@ -58,10 +62,10 @@ export default function Dashboard({ rooms, inspirations, products, budgetItems, 
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: 1200 }} className="animate-in">
-      {/* Header */}
-      <div style={{ marginBottom: 36 }}>
+      {/* Header — time-reactive */}
+      <div style={{ marginBottom: 36, padding: '28px 28px 24px', borderRadius: 16, background: headerBg, border: '1px solid var(--border)', transition: 'background 0.6s ease' }}>
         <p style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 6 }}>
-          {greeting()} ✦
+          {emoji} {greeting}
         </p>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
           Your Home,<br /><em>Beautifully Planned</em>
@@ -104,41 +108,49 @@ export default function Dashboard({ rooms, inspirations, products, budgetItems, 
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
-        {/* Budget progress */}
+        {/* Budget + Costs */}
         <div className="card" style={{ padding: '20px 22px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>Room Budget</p>
-              <p style={{ fontSize: 11, color: 'var(--text-3)' }}>{fmt(totalSpent)} of {fmt(totalEst)}</p>
+              <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>Financials</p>
+              <p style={{ fontSize: 11, color: 'var(--text-3)' }}>Budget & actual spending</p>
             </div>
             <button onClick={() => onNavigate('budget')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-              View →
+              Budget →
             </button>
           </div>
-          {totalEst > 0 ? (
+
+          {/* Budget progress */}
+          {totalEstimate > 0 ? (
             <>
               <div className="progress-bar" style={{ marginBottom: 8 }}>
                 <div className="progress-fill" style={{ width: `${Math.min(100, progress)}%` }} />
               </div>
-              <p style={{ fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-serif)' }}>
-                {fmt(totalEst - totalSpent)} remaining
+              <p style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 16 }}>
+                {Math.round(progress)}% of estimated budget used
               </p>
             </>
-          ) : (
-            <p style={{ fontSize: 13, color: 'var(--text-3)' }}>No budget items yet</p>
-          )}
+          ) : null}
 
-          {/* Cost tracker summary */}
-          {totalCosts > 0 && (
-            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <p style={{ fontSize: 12, color: 'var(--text-2)' }}>Total home cost</p>
-                <button onClick={() => onNavigate('costs')} style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  View →
-                </button>
+          {/* Stats grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[
+              { label: 'Estimated',  value: fmt(totalEstimate), color: 'var(--text)',   show: totalEstimate > 0 },
+              { label: 'Spent',      value: fmt(totalActual),   color: 'var(--green)',  show: totalActual > 0 },
+              { label: 'Remaining',  value: fmt(Math.max(0, totalEstimate - totalActual)), color: 'var(--accent)', show: totalEstimate > 0 },
+              { label: 'Cost Tracker', value: fmt(totalCosts), color: '#6B7FA8', show: totalCosts > 0, page: 'costs' as Page },
+            ].filter(s => s.show).map((s, i) => (
+              <div key={i}
+                onClick={s.page ? () => onNavigate(s.page!) : undefined}
+                style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, cursor: s.page ? 'pointer' : 'default' }}>
+                <p style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{s.label}</p>
+                <p style={{ fontSize: 16, fontFamily: 'var(--font-serif)', fontWeight: 400, color: s.color }}>{s.value}</p>
               </div>
-              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 300, marginTop: 4 }}>{fmt(totalCosts)}</p>
-            </div>
+            ))}
+          </div>
+
+          {totalEstimate === 0 && totalCosts === 0 && (
+            <p style={{ fontSize: 13, color: 'var(--text-3)' }}>No budget items yet</p>
           )}
         </div>
 

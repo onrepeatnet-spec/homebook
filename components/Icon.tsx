@@ -3,7 +3,7 @@ type IconName =
   | 'dollarSign' | 'fileText' | 'plus' | 'x' | 'trash' | 'edit'
   | 'link' | 'check' | 'chevronRight' | 'chevronDown' | 'upload'
   | 'move' | 'layers' | 'tag' | 'download' | 'eye' | 'star'
-  | 'room' | 'sparkles' | 'menu' | 'loader';
+  | 'room' | 'sparkles' | 'menu' | 'loader' | 'settings';
 
 const paths: Record<IconName, React.ReactNode> = {
   home: <><rect x="3" y="11" width="18" height="10" rx="1"/><path d="M3 11L12 3l9 8"/></>,
@@ -32,6 +32,7 @@ const paths: Record<IconName, React.ReactNode> = {
   sparkles: <><path d="M12 3v1M12 20v1M4.22 4.22l.7.7M19.07 19.07l.71.71M1 12h1M21 12h1M4.22 19.78l.7-.7M19.07 4.93l.71-.71"/><path d="M12 8a4 4 0 100 8 4 4 0 000-8z"/></>,
   menu: <><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>,
   loader: <><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></>,
+  settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,
 };
 
 export default function Icon({ name, size = 16, color = 'currentColor' }: { name: IconName; size?: number; color?: string }) {

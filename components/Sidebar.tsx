@@ -42,13 +42,6 @@ export default function Sidebar({ page, rooms, products, floorplans, onNavigate 
           </div>
         )}
         <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: open ? 0 : 'auto' }}>
-          {/* Currency badge — clicking opens settings */}
-          <button
-            onClick={() => setShowSettings(true)}
-            title="Settings & Currency"
-            style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 6, padding: '3px 7px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--accent)', fontFamily: 'inherit', display: 'flex', alignItems: 'center' }}>
-            {currency.symbol}
-          </button>
           <button onClick={() => setOpen(!open)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-3)', borderRadius: 6, display: 'flex' }}>
             <Icon name="chevronRight" size={15} />
           </button>
@@ -82,13 +75,21 @@ export default function Sidebar({ page, rooms, products, floorplans, onNavigate 
         )}
       </div>
 
-      {open && (
-        <div style={{ padding: '10px 14px 14px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>
+      {/* Settings & dark mode at bottom */}
+      <div style={{ padding: '10px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="nav-item"
+          style={{ fontSize: 13, width: '100%' }}>
+          <Icon name="settings" size={15} />
+          {open && 'Settings'}
+        </button>
+        {open && (
+          <div style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center', marginTop: 8 }}>
             {rooms.length} rooms · {products.length} products
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
