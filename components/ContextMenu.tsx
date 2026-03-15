@@ -31,13 +31,13 @@ export default function ContextMenu({ x, y, items, onClose }: {
     };
   }, [onClose]);
 
-  // Clamp to viewport
+  // Clamp to viewport on all four sides
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
   const menuW = 180;
   const menuH = items.length * 38 + 12;
-  const left = Math.min(x, vw - menuW - 8);
-  const top  = Math.min(y, vh - menuH - 8);
+  const left = Math.max(8, Math.min(x, vw - menuW - 8));
+  const top  = Math.max(8, Math.min(y, vh - menuH - 8));
 
   return (
     <div

@@ -147,6 +147,49 @@ export default function BudgetTab({ items, roomId, allRooms, products, onAdd, on
         <div className="progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
+      {/* Per-room breakdown — only shown when viewing all rooms, only rooms with non-zero values */}
+      {!roomId && allRooms && allRooms.length > 0 && (() => {
+        const roomRows = allRooms.map(room => {
+          const roomItems = items.filter(b => b.room_id === room.id);
+          const est  = roomItems.reduce((s, b) => s + (b.estimated_price || 0), 0);
+          const spent = roomItems.filter(b => b.purchased).reduce((s, b) => s + (b.actual_price ?? b.estimated_price ?? 0), 0);
+          const count = roomItems.length;
+          if (est === 0 && spent === 0) return null;
+          return { room, est, spent, count };
+        }).filter(Boolean) as { room: { id: number; name: string; emoji: string }; est: number; spent: number; count: number }[];
+
+        if (roomRows.length === 0) return null;
+        return (
+          <div className="card" style={{ overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ padding: '14px 20px 10px', borderBottom: '1px solid var(--border)' }}>
+              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-3)' }}>By Room</p>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="budget-table">
+                <thead>
+                  <tr>
+                    <th>Room</th>
+                    <th style={{ textAlign: 'right' }}>Estimated</th>
+                    <th style={{ textAlign: 'right' }}>Spent</th>
+                    <th style={{ textAlign: 'right' }}>Items</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roomRows.map(({ room, est, spent, count }) => (
+                    <tr key={room.id}>
+                      <td><span style={{ marginRight: 6 }}>{room.emoji}</span>{room.name}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-serif)' }}>{est > 0 ? fmt(est) : '—'}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-serif)', color: spent > 0 ? 'var(--green)' : 'var(--text-3)' }}>{spent > 0 ? fmt(spent) : '—'}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--text-3)' }}>{count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <Icon name="plus" size={14} /> Add Item
