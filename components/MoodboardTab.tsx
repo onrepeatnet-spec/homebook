@@ -23,6 +23,7 @@ export default function MoodboardTab({ roomId, initialItems }: {
   const [newLink, setNewLink]     = useState({ href: '', title: '' });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving]       = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [dirty, setDirty]         = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileRef   = useRef<HTMLInputElement>(null);
@@ -33,9 +34,15 @@ export default function MoodboardTab({ roomId, initialItems }: {
 
   const save = useCallback(async (itemsToSave: MoodboardItem[]) => {
     setSaving(true);
-    try { await upsertMoodboardItems(roomId, itemsToSave); setDirty(false); }
-    catch { /* silent */ }
-    finally { setSaving(false); }
+    setSaveError(null);
+    try {
+      await upsertMoodboardItems(roomId, itemsToSave);
+      setDirty(false);
+    } catch (e: any) {
+      setSaveError(e?.message ?? 'Save failed');
+    } finally {
+      setSaving(false);
+    }
   }, [roomId]);
 
   // Debounced save on change
@@ -235,8 +242,13 @@ export default function MoodboardTab({ roomId, initialItems }: {
             <Icon name="trash" size={14} /> Delete
           </button>
         )}
-        <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }}>
-          {uploading ? '⬆️ Uploading…' : saving ? '💾 Saving…' : dirty ? '●  Unsaved' : '✓ Saved'}
+        {dirty && (
+          <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => save(items)} disabled={saving}>
+            {saving ? 'Saving…' : '💾 Save'}
+          </button>
+        )}
+        <div style={{ fontSize: 12, color: saveError ? 'var(--red)' : 'var(--text-3)', marginLeft: dirty ? 8 : 'auto' }}>
+          {uploading ? '⬆️ Uploading…' : saving ? '💾 Saving…' : saveError ? `⚠️ ${saveError}` : dirty ? '● Unsaved' : '✓ Saved'}
         </div>
       </div>
 

@@ -20,10 +20,19 @@ export default function BudgetTab({ items, roomId, allRooms, products, onAdd, on
   const [saving, setSaving]           = useState(false);
   const [formRoom, setFormRoom]       = useState<number>(roomId ?? allRooms?.[0]?.id ?? 1);
   const [form, setForm]               = useState({ name: '', category: '', estimated_price: '', actual_price: '' });
+  const goalKey = `hb_budget_goal_${roomId ?? 'all'}`;
+  const [budgetGoal, setBudgetGoalState] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(goalKey) ?? '';
+  });
   const [addMode, setAddMode]         = useState<'manual' | 'product'>('manual');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [budgetGoal, setBudgetGoal]   = useState('');
   const [editingGoal, setEditingGoal] = useState(false);
+
+  const setBudgetGoal = (val: string) => {
+    setBudgetGoalState(val);
+    if (typeof window !== 'undefined') localStorage.setItem(goalKey, val);
+  };
   const { fmt, currency } = useCurrency();
 
   const filtered = roomId ? items.filter(b => b.room_id === roomId) : items;

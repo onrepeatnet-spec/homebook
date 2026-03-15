@@ -127,7 +127,20 @@ export const getMoodboardItems = async (roomId: number): Promise<MoodboardItem[]
 export const upsertMoodboardItems = async (roomId: number, items: MoodboardItem[]): Promise<void> => {
   await supabase.from('moodboard_items').delete().eq('room_id', roomId);
   if (items.length > 0) {
-    const { error } = await supabase.from('moodboard_items').insert(items.map(i => ({ ...i, room_id: roomId })));
+    // Strip undefined fields to avoid column errors
+    const rows = items.map(i => {
+      const row: Record<string, unknown> = {
+        id: i.id, type: i.type, x: i.x, y: i.y, w: i.w, h: i.h, room_id: roomId,
+      };
+      if (i.src   !== undefined) row.src   = i.src;
+      if (i.color !== undefined) row.color = i.color;
+      if (i.text  !== undefined) row.text  = i.text;
+      if (i.label !== undefined) row.label = i.label;
+      if (i.href  !== undefined) row.href  = i.href;
+      if (i.title !== undefined) row.title = i.title;
+      return row;
+    });
+    const { error } = await supabase.from('moodboard_items').insert(rows);
     if (error) throw error;
   }
 };

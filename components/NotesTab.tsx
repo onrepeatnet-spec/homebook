@@ -32,11 +32,19 @@ export default function NotesTab({ roomId }: { roomId: number }) {
       setSaving(true);
       try {
         await supabase.from('notes').upsert({ room_id: roomId, content }, { onConflict: 'room_id' });
-      } catch { /* silent — will retry on next change */ }
-      finally { setSaving(false); }
+      } catch (e: any) {
+        console.error('Notes save failed:', e?.message);
+      } finally { setSaving(false); }
     }, 1500);
     return () => clearTimeout(t);
   }, [content, roomId, loaded]);
+
+  const saveNow = async () => {
+    setSaving(true);
+    try {
+      await supabase.from('notes').upsert({ room_id: roomId, content }, { onConflict: 'room_id' });
+    } finally { setSaving(false); }
+  };
 
   const renderPreview = (text: string) =>
     text.split('\n').map((line, i) => {
@@ -56,10 +64,17 @@ export default function NotesTab({ roomId }: { roomId: number }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{saving ? '💾 Saving…' : loaded ? '✓ Saved' : ''}</span>
-        <button className="btn btn-ghost" onClick={() => setEditing(e => !e)}>
-          <Icon name={editing ? 'eye' : 'edit'} size={14} />
-          {editing ? 'Preview' : 'Edit'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {editing && (
+            <button className="btn btn-primary" onClick={saveNow} disabled={saving}>
+              {saving ? 'Saving…' : '💾 Save'}
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={() => setEditing(e => !e)}>
+            <Icon name={editing ? 'eye' : 'edit'} size={14} />
+            {editing ? 'Preview' : 'Edit'}
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: 28, minHeight: 400 }}>
