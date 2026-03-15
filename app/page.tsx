@@ -15,12 +15,14 @@ import CostTrackerPage from '@/components/views/CostTrackerPage';
 import CalendarPage from '@/components/views/CalendarPage';
 import DiscoverPage from '@/components/views/DiscoverPage';
 import { CurrencyProvider } from '@/components/CurrencyContext';
+import { ToastProvider, useToast } from '@/components/ToastContext';
 import * as db from '@/lib/db';
 import type { Room, Inspiration, Product, ColourPalette, BudgetItem, Floorplan, Todo, CostItem, CalendarEvent } from '@/lib/types';
 
 export type Page = 'dashboard' | 'rooms' | 'room' | 'floorplans' | 'inspiration' | 'products' | 'budget' | 'todos' | 'costs' | 'calendar' | 'discover';
 
 export default function Home() {
+  const { showError } = useToast();
   const [page, setPage]               = useState<Page>('dashboard');
   const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
 
@@ -63,7 +65,7 @@ export default function Home() {
       setRooms(rooms); setInspirations(i as any); setProducts(p as any);
       setPalettes(pal as any); setBudgetItems(b as any); setFloorplans(fp as any);
       setTodos(td as any); setCostItems(ci as any); setCalEvents(ce as any);
-      if (errors.length) setLoadErrors(errors);
+      if (errors.length) { setLoadErrors(errors); errors.forEach(e => showError(e)); }
       setLoading(false);
     }
     load();
@@ -150,6 +152,7 @@ export default function Home() {
   }
 
   return (
+    <ToastProvider>
     <CurrencyProvider>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
       <div className="desktop-sidebar">
@@ -213,5 +216,6 @@ export default function Home() {
       <MobileNav page={page} onNavigate={navigate} />
     </div>
     </CurrencyProvider>
+    </ToastProvider>
   );
 }
