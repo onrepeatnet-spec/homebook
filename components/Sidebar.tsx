@@ -16,6 +16,7 @@ const NAV = [
   { id: 'todos',       label: 'To-Do',        icon: 'check'        as const },
   { id: 'costs',       label: 'Cost Tracker', icon: 'tag'          as const },
   { id: 'calendar',    label: 'Calendar',     icon: 'fileText'     as const },
+  { id: 'discover',    label: 'Discover',     icon: 'star'         as const },
 ];
 
 export default function Sidebar({ page, rooms, products, floorplans, onNavigate }: {
