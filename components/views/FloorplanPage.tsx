@@ -39,6 +39,9 @@ export default function FloorplanPage({ floorplans: initial = [], rooms = [], on
   const [pendingPoly, setPendingPoly] = useState<Point[] | null>(null);
   const [labelForm, setLabelForm]   = useState({ room_name: '', room_id: '' as string | number, color: COLORS[0] });
 
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const imgRef = useRef<HTMLDivElement>(null);
 
   // ─── Coordinate helpers ───────────────────────────────────────────────────
@@ -321,6 +324,7 @@ export default function FloorplanPage({ floorplans: initial = [], rooms = [], on
 
           {/* Room list sidebar */}
           <div style={{ width: 220, flexShrink: 0 }}>
+            {/* Mapped rooms */}
             <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 12 }}>
               Mapped Rooms
             </p>
@@ -345,12 +349,42 @@ export default function FloorplanPage({ floorplans: initial = [], rooms = [], on
               ))
             )}
 
+            {/* Unmapped rooms */}
+            {(() => {
+              const mappedIds = new Set(active.rooms.map(r => r.room_id).filter((id): id is number => id !== null));
+              const unmapped = rooms.filter(r => !mappedIds.has(r.id));
+              if (unmapped.length === 0) return null;
+              return (
+                <div style={{ marginTop: 20 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 12 }}>
+                    Unmapped Rooms
+                  </p>
+                  {unmapped.map(room => (
+                    <div key={room.id}
+                      title="Click to draw this room on the floorplan"
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, marginBottom: 6, background: 'var(--surface)', border: '1px dashed var(--border)', cursor: 'pointer', opacity: 0.75, transition: 'var(--transition)' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.opacity = '1'; (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--accent)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.opacity = '0.75'; (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'; }}
+                      onClick={() => {
+                        setLabelForm({ room_name: room.name, room_id: String(room.id), color: room.color ?? COLORS[0] });
+                        setMode('draw');
+                        setCurrentPts([]);
+                      }}>
+                      <span style={{ fontSize: 14, flexShrink: 0 }}>{room.emoji}</span>
+                      <span style={{ fontSize: 13, flex: 1 }}>{room.name}</span>
+                      <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>DRAW</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
               <p style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10 }}>
                 {saving ? '💾 Saving…' : active.rooms.length > 0 ? '✓ All rooms saved' : ''}
               </p>
               <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', color: 'var(--red)', borderColor: 'var(--red)', fontSize: 12 }}
-                onClick={() => removeFloorplan(active.id)}>
+                onClick={() => setConfirmDelete(true)}>
                 <Icon name="trash" size={13} /> Delete floorplan
               </button>
             </div>
@@ -412,6 +446,24 @@ export default function FloorplanPage({ floorplans: initial = [], rooms = [], on
                 disabled={saving || (!labelForm.room_name && !labelForm.room_id)}
                 onClick={saveLabel}>
                 {saving ? 'Saving…' : 'Save Room'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirm delete floorplan modal */}
+      {confirmDelete && active && (
+        <Modal title="Delete floorplan?" onClose={() => setConfirmDelete(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6 }}>
+              Are you sure you want to delete <strong>{active.name}</strong>? The floorplan image and all drawn room polygons will be removed. Your rooms will not be deleted.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmDelete(false)}>Cancel</button>
+              <button className="btn btn-primary" style={{ background: 'var(--red)', borderColor: 'var(--red)' }}
+                onClick={async () => { setConfirmDelete(false); await removeFloorplan(active.id); }}>
+                Delete
               </button>
             </div>
           </div>
