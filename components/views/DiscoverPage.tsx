@@ -65,6 +65,7 @@ export default function DiscoverPage({ onAddEvent }: {
   const search = async () => {
     setLoading(true);
     setError('');
+    setDebugInfo(null);
     setSearched(true);
     try {
       const res = await fetch('/api/discover', {
@@ -72,21 +73,41 @@ export default function DiscoverPage({ onAddEvent }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: tab, city: city === 'All Portugal' ? null : city }),
       });
-      const data = await res.json();
+
+      let data: any;
+      const rawText = await res.text();
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        setError(`Server returned non-JSON response (HTTP ${res.status}):\n${rawText.slice(0, 400)}`);
+        return;
+      }
+
       if (data.debug) setDebugInfo(data.debug);
-      if (data.error && !data.results) {
-        setError(data.error + (data.raw ? `\n\nRaw: ${data.raw}` : ''));
-      } else if (tab === 'markets') {
-        // Sort by date
-        const sorted = (data.results ?? []).sort((a: MarketResult, b: MarketResult) =>
+
+      if (!res.ok || (data.error && !data.results)) {
+        setError([
+          data.error ?? `HTTP ${res.status}`,
+          data.raw ? `\nAI returned: ${data.raw}` : '',
+        ].filter(Boolean).join(''));
+        return;
+      }
+
+      const results = data.results ?? [];
+      if (results.length === 0) {
+        setError('The AI returned 0 results. Check the debug info below.');
+        return;
+      }
+
+      if (tab === 'markets') {
+        setMarkets(results.sort((a: MarketResult, b: MarketResult) =>
           (a.date ?? '').localeCompare(b.date ?? '')
-        );
-        setMarkets(sorted);
+        ));
       } else {
-        setStores(data.results ?? []);
+        setStores(results);
       }
     } catch (e: any) {
-      setError(e.message);
+      setError(`Fetch failed: ${e.message}`);
     } finally {
       setLoading(false);
     }
