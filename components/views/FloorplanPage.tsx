@@ -349,9 +349,9 @@ export default function FloorplanPage({ floorplans: initial = [], rooms = [], on
               ))
             )}
 
-            {/* Unmapped rooms */}
+            {/* Unmapped rooms — rooms not drawn on ANY floorplan */}
             {(() => {
-              const mappedIds = new Set(active.rooms.map(r => r.room_id).filter((id): id is number => id !== null));
+              const mappedIds = new Set(floorplans.flatMap(fp => fp.rooms.map(r => r.room_id)).filter((id): id is number => id !== null));
               const unmapped = rooms.filter(r => !mappedIds.has(r.id));
               if (unmapped.length === 0) return null;
               return (
