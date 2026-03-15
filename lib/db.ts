@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Room, Inspiration, Product, ColourPalette, BudgetItem, MoodboardItem, Floorplan, Todo, CostItem, CalendarEvent } from './types';
+import type { Room, Inspiration, Product, ColourPalette, BudgetItem, BudgetScenario, MoodboardItem, Floorplan, Todo, CostItem, CalendarEvent } from './types';
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 export const getRooms = async (): Promise<Room[]> => {
@@ -226,5 +226,37 @@ export const updateCalendarEvent = async (id: number, updates: Partial<CalendarE
 };
 export const deleteCalendarEvent = async (id: number): Promise<void> => {
   const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+  if (error) throw error;
+};
+
+// ─── App Settings ─────────────────────────────────────────────────────────────
+export const getSetting = async (key: string): Promise<string | null> => {
+  const { data } = await supabase.from('app_settings').select('value').eq('key', key).single();
+  return data?.value ?? null;
+};
+export const setSetting = async (key: string, value: string): Promise<void> => {
+  await supabase.from('app_settings').upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+};
+
+// ─── Budget Scenarios ─────────────────────────────────────────────────────────
+export const getBudgetScenarios = async (roomId?: number | null): Promise<BudgetScenario[]> => {
+  let query = supabase.from('budget_scenarios').select('*').order('created_at');
+  if (roomId) query = query.eq('room_id', roomId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+};
+export const createBudgetScenario = async (s: Omit<BudgetScenario, 'id' | 'created_at'>): Promise<BudgetScenario> => {
+  const { data, error } = await supabase.from('budget_scenarios').insert(s).select().single();
+  if (error) throw error;
+  return data;
+};
+export const updateBudgetScenario = async (id: number, updates: Partial<BudgetScenario>): Promise<BudgetScenario> => {
+  const { data, error } = await supabase.from('budget_scenarios').update(updates).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+};
+export const deleteBudgetScenario = async (id: number): Promise<void> => {
+  const { error } = await supabase.from('budget_scenarios').delete().eq('id', id);
   if (error) throw error;
 };

@@ -1,8 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
+import BudgetScenarios from '@/components/BudgetScenarios';
 import { useCurrency } from '@/components/CurrencyContext';
+import { getSetting, setSetting } from '@/lib/db';
 import type { BudgetItem, Product } from '@/lib/types';
 
 const CATEGORIES = ['Seating','Tables','Storage','Lighting','Textiles','Decor','Art','Plants','Other'];
@@ -18,20 +20,23 @@ export default function BudgetTab({ items, roomId, allRooms, products, onAdd, on
 }) {
   const [showAdd, setShowAdd]         = useState(false);
   const [saving, setSaving]           = useState(false);
+  const [view, setView]               = useState<'budget' | 'scenarios'>('budget');
   const [formRoom, setFormRoom]       = useState<number>(roomId ?? allRooms?.[0]?.id ?? 1);
   const [form, setForm]               = useState({ name: '', category: '', estimated_price: '', actual_price: '' });
-  const goalKey = `hb_budget_goal_${roomId ?? 'all'}`;
-  const [budgetGoal, setBudgetGoalState] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return localStorage.getItem(goalKey) ?? '';
-  });
+  const goalKey = `budget_goal_${roomId ?? 'all'}`;
+  const [budgetGoal, setBudgetGoalState] = useState('');
   const [addMode, setAddMode]         = useState<'manual' | 'product'>('manual');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingGoal, setEditingGoal] = useState(false);
 
+  // Load goal from Supabase on mount
+  useEffect(() => {
+    getSetting(goalKey).then(val => { if (val) setBudgetGoalState(val); }).catch(() => {});
+  }, [goalKey]);
+
   const setBudgetGoal = (val: string) => {
     setBudgetGoalState(val);
-    if (typeof window !== 'undefined') localStorage.setItem(goalKey, val);
+    setSetting(goalKey, val).catch(() => {});
   };
   const { fmt, currency } = useCurrency();
 
@@ -83,7 +88,22 @@ export default function BudgetTab({ items, roomId, allRooms, products, onAdd, on
 
   return (
     <div>
-      {/* Budget goal + summary */}
+      {/* View switcher */}
+      <div style={{ display: 'flex', gap: 2, marginBottom: 24, borderBottom: '1px solid var(--border)' }}>
+        <button className={`tab-btn ${view === 'budget' ? 'active' : ''}`} onClick={() => setView('budget')}>
+          💰 Budget Tracker
+        </button>
+        <button className={`tab-btn ${view === 'scenarios' ? 'active' : ''}`} onClick={() => setView('scenarios')}>
+          📋 Scenarios
+        </button>
+      </div>
+
+      {view === 'scenarios' && products && (
+        <BudgetScenarios roomId={roomId} products={products} />
+      )}
+
+      {view === 'budget' && (
+      <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginBottom: 24 }}>
         {/* Editable goal card */}
         <div className="card" style={{ padding: '18px 20px', borderLeft: '3px solid var(--accent)' }}>
@@ -273,6 +293,8 @@ export default function BudgetTab({ items, roomId, allRooms, products, onAdd, on
             </div>
           </div>
         </Modal>
+      )}
+      </> /* end view === 'budget' */
       )}
     </div>
   );

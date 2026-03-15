@@ -33,6 +33,8 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
   const [addMode, setAddMode]   = useState<'link' | 'manual'>('link');
   const { fmt, currency } = useCurrency();
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; product: Product } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Product>>({});
 
   const filtered = products
     .filter(p => !roomId || p.room_id === roomId)
@@ -74,6 +76,22 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
   const handleStatusChange = async (id: number, status: Status) => {
     await onUpdate(id, { status });
     if (selected?.id === id) setSelected(s => s ? { ...s, status } : null);
+  };
+
+  const startEdit = (p: Product) => {
+    setEditForm({
+      name: p.name, store: p.store ?? '', url: p.url ?? '',
+      price: p.price, notes: p.notes ?? '', status: p.status,
+      image: p.image ?? '',
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected) return;
+    await onUpdate(selected.id, editForm);
+    setSelected(s => s ? { ...s, ...editForm } : null);
+    setEditing(false);
   };
 
   return (
@@ -126,48 +144,104 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
           <div style={{ position: 'relative' }}>
             {selected.image
               ? <img src={selected.image} alt="" style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }} /> // eslint-disable-line
-              : <div style={{ width: '100%', height: 160, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="shoppingBag" size={48} color="var(--border-dark)" /></div>
+              : <div style={{ width: '100%', height: 120, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="shoppingBag" size={48} color="var(--border-dark)" /></div>
             }
-            <button className="btn btn-ghost" style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.9)' }} onClick={() => setSelected(null)}>
+            <button className="btn btn-ghost" style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.9)' }} onClick={() => { setSelected(null); setEditing(false); }}>
               <Icon name="x" size={14} />
             </button>
           </div>
+
           <div style={{ padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, lineHeight: 1.2 }}>{selected.name}</h2>
-              <span className={`badge ${statusColor(selected.status)}`}>{selected.status}</span>
-            </div>
-            {selected.store && <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 6 }}>{selected.store}</p>}
-            <p style={{ fontSize: 28, fontFamily: 'var(--font-serif)', fontWeight: 300, marginBottom: 16 }}>{fmt(selected.price)}</p>
-            {selected.notes && <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 20, lineHeight: 1.6 }}>{selected.notes}</p>}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Update status</label>
-              <select className="input" value={selected.status} onChange={e => handleStatusChange(selected.id, e.target.value as Status)}>
-                {STATUSES.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-            {allRooms && allRooms.length > 1 && (
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Move to room</label>
-                <select className="input" value={selected.room_id}
-                  onChange={async e => {
-                    const room_id = Number(e.target.value);
-                    await onUpdate(selected.id, { room_id });
-                    setSelected(s => s ? { ...s, room_id } : null);
-                  }}>
-                  {allRooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
-                </select>
-              </div>
+            {!editing ? (
+              /* ── View mode ── */
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, lineHeight: 1.2 }}>{selected.name}</h2>
+                  <button className="btn btn-ghost" style={{ padding: '4px 10px', flexShrink: 0 }} onClick={() => startEdit(selected)}>
+                    <Icon name="edit" size={13} /> Edit
+                  </button>
+                </div>
+                {selected.store && <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 4 }}>{selected.store}</p>}
+                <p style={{ fontSize: 28, fontFamily: 'var(--font-serif)', fontWeight: 300, marginBottom: 12 }}>{fmt(selected.price)}</p>
+                {selected.notes && <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16, lineHeight: 1.6 }}>{selected.notes}</p>}
+
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Status</label>
+                  <select className="input" value={selected.status} onChange={e => handleStatusChange(selected.id, e.target.value as Status)}>
+                    {STATUSES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                {allRooms && allRooms.length > 1 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Room</label>
+                    <select className="input" value={selected.room_id}
+                      onChange={async e => {
+                        const room_id = Number(e.target.value);
+                        await onUpdate(selected.id, { room_id });
+                        setSelected(s => s ? { ...s, room_id } : null);
+                      }}>
+                      {allRooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {selected.url && selected.url !== '#' && (
+                  <a href={selected.url} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ display: 'flex', marginBottom: 10, textDecoration: 'none' }}>
+                    <Icon name="link" size={14} /> View product page
+                  </a>
+                )}
+                <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)', width: '100%', justifyContent: 'center' }}
+                  onClick={async () => { await onDelete(selected.id); setSelected(null); }}>
+                  <Icon name="trash" size={14} /> Remove
+                </button>
+              </>
+            ) : (
+              /* ── Edit mode ── */
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>Edit Product</p>
+                  <button className="btn btn-ghost" style={{ padding: '4px 10px' }} onClick={() => setEditing(false)}>Cancel</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Name *</label>
+                    <input className="input" value={editForm.name ?? ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Store</label>
+                      <input className="input" value={editForm.store ?? ''} onChange={e => setEditForm(f => ({ ...f, store: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Price ({currency.symbol})</label>
+                      <input className="input" type="number" value={editForm.price ?? ''} onChange={e => setEditForm(f => ({ ...f, price: parseFloat(e.target.value) || 0 }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Status</label>
+                    <select className="input" value={editForm.status ?? selected.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value as Status }))}>
+                      {STATUSES.map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Product URL</label>
+                    <input className="input" placeholder="https://…" value={editForm.url ?? ''} onChange={e => setEditForm(f => ({ ...f, url: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Image URL</label>
+                    <input className="input" placeholder="https://…" value={editForm.image ?? ''} onChange={e => setEditForm(f => ({ ...f, image: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Notes</label>
+                    <textarea className="input" rows={3} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
+                  </div>
+                  <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={saveEdit}>
+                    Save Changes
+                  </button>
+                </div>
+              </>
             )}
-            {selected.url && selected.url !== '#' && (
-              <a href={selected.url} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ display: 'flex', marginBottom: 10, textDecoration: 'none' }}>
-                <Icon name="link" size={14} /> View product page
-              </a>
-            )}
-            <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)', width: '100%', justifyContent: 'center' }}
-              onClick={async () => { await onDelete(selected.id); setSelected(null); }}>
-              <Icon name="trash" size={14} /> Remove
-            </button>
           </div>
         </div>
       )}
@@ -282,6 +356,7 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
           onClose={() => setCtxMenu(null)}
           items={[
             { label: 'View details', icon: '👁', onClick: () => setSelected(ctxMenu.product) },
+            { label: 'Edit', icon: '✏️', onClick: () => { setSelected(ctxMenu.product); startEdit(ctxMenu.product); } },
             { label: 'Mark as Purchased', icon: '✅', onClick: () => handleStatusChange(ctxMenu.product.id, 'Purchased') },
             { label: 'Mark as Buying', icon: '🛒', onClick: () => handleStatusChange(ctxMenu.product.id, 'Buying') },
             { label: 'Mark as Considering', icon: '🤔', onClick: () => handleStatusChange(ctxMenu.product.id, 'Considering') },

@@ -52,6 +52,23 @@ export type BudgetItem = {
   created_at: string;
 };
 
+export type BudgetScenarioItem = {
+  product_id: number;
+  name: string;
+  price: number;
+  store?: string;
+  image?: string;
+  included: boolean;
+};
+
+export type BudgetScenario = {
+  id: number;
+  name: string;
+  room_id: number | null;
+  items: BudgetScenarioItem[];
+  created_at: string;
+};
+
 export type MoodboardItem = {
   id: string;
   type: 'image' | 'color' | 'text' | 'link';
