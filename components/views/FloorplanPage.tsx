@@ -111,21 +111,20 @@ export default function FloorplanPage({ floorplans: initial = [], rooms = [], on
     if (!pendingPoly || !active) return;
     setSaving(true);
 
-    // If no existing room is linked, create a new Room in Supabase
     let linkedRoomId: number | null = labelForm.room_id === '' ? null : Number(labelForm.room_id);
     const roomName = labelForm.room_name || rooms.find(r => r.id === linkedRoomId)?.name || 'New Room';
 
+    let createdRoom = null;
     if (!linkedRoomId && roomName) {
       try {
-        const newRoom = await createRoom({
+        createdRoom = await createRoom({
           name: roomName,
           description: '',
           emoji: '🏠',
           color: labelForm.color,
           order: 0,
         });
-        linkedRoomId = newRoom.id;
-        onRoomCreated(newRoom);
+        linkedRoomId = createdRoom.id;
       } catch { /* fall through with null room_id */ }
     }
 
@@ -136,11 +135,17 @@ export default function FloorplanPage({ floorplans: initial = [], rooms = [], on
       points: pendingPoly,
       color: labelForm.color,
     };
-    await persistRooms([...active.rooms, newFpRoom]);
-    setPendingPoly(null);
-    setLabelModal(false);
-    setLabelForm({ room_name: '', room_id: '', color: COLORS[0] });
-    setSaving(false);
+
+    try {
+      await persistRooms([...active.rooms, newFpRoom]);
+      // Notify parent after floorplan is persisted so both state updates land together
+      if (createdRoom) onRoomCreated(createdRoom);
+    } finally {
+      setPendingPoly(null);
+      setLabelModal(false);
+      setLabelForm({ room_name: '', room_id: '', color: COLORS[0] });
+      setSaving(false);
+    }
   };
 
   const deleteRoomPoly = async (roomId: string) => {
