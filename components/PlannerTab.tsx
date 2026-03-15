@@ -20,6 +20,7 @@ export default function PlannerTab({ roomId, products }: {
   const [showAdd, setShowAdd]     = useState(false);
   const [newName, setNewName]     = useState('');
   const [confirmDel, setConfirmDel] = useState<BudgetScenario | null>(null);
+  const [createError, setCreateError] = useState('');
   const [comparing, setComparing] = useState(false);
 
   useEffect(() => {
@@ -31,23 +32,29 @@ export default function PlannerTab({ roomId, products }: {
   const createSet = async () => {
     if (!newName.trim()) return;
     setSaving(true);
-    const s = await createBudgetScenario({
-      name: newName.trim(),
-      room_id: roomId,
-      items: products.map(p => ({
-        product_id: p.id,
-        name: p.name,
-        price: p.price ?? 0,
-        store: p.store,
-        image: p.image,
-        included: false,
-      })),
-    });
-    setSets(prev => [...prev, s]);
-    setActiveSet(s);
-    setNewName('');
-    setShowAdd(false);
-    setSaving(false);
+    setCreateError('');
+    try {
+      const s = await createBudgetScenario({
+        name: newName.trim(),
+        room_id: roomId,
+        items: products.map(p => ({
+          product_id: p.id,
+          name: p.name,
+          price: p.price ?? 0,
+          store: p.store ?? '',
+          image: p.image ?? '',
+          included: false,
+        })),
+      });
+      setSets(prev => [...prev, s]);
+      setActiveSet(s);
+      setNewName('');
+      setShowAdd(false);
+    } catch (e: any) {
+      setCreateError(e?.message ?? 'Failed to create set — check Supabase connection');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleItem = async (set: BudgetScenario, productId: number) => {
@@ -316,8 +323,13 @@ export default function PlannerTab({ roomId, products }: {
             <p style={{ fontSize: 12, color: 'var(--text-3)' }}>
               All {products.length} room product{products.length !== 1 ? 's' : ''} will be added to this set. Tick the ones you want to include.
             </p>
+            {createError && (
+              <p style={{ fontSize: 12, color: 'var(--red)', background: '#FEF2F0', padding: '8px 12px', borderRadius: 6 }}>
+                ⚠️ {createError}
+              </p>
+            )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
+              <button className="btn btn-ghost" onClick={() => { setShowAdd(false); setCreateError(''); }}>Cancel</button>
               <button className="btn btn-primary" disabled={!newName.trim() || saving} onClick={createSet}>
                 {saving ? 'Creating…' : 'Create Set'}
               </button>
