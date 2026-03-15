@@ -13,11 +13,12 @@ import FloorplanPage from '@/components/views/FloorplanPage';
 import TodoPage from '@/components/views/TodoPage';
 import CostTrackerPage from '@/components/views/CostTrackerPage';
 import CalendarPage from '@/components/views/CalendarPage';
+import DiscoverPage from '@/components/views/DiscoverPage';
 import { CurrencyProvider } from '@/components/CurrencyContext';
 import * as db from '@/lib/db';
 import type { Room, Inspiration, Product, ColourPalette, BudgetItem, Floorplan, Todo, CostItem, CalendarEvent } from '@/lib/types';
 
-export type Page = 'dashboard' | 'rooms' | 'room' | 'floorplans' | 'inspiration' | 'products' | 'budget' | 'todos' | 'costs' | 'calendar';
+export type Page = 'dashboard' | 'rooms' | 'room' | 'floorplans' | 'inspiration' | 'products' | 'budget' | 'todos' | 'costs' | 'calendar' | 'discover';
 
 export default function Home() {
   const [page, setPage]               = useState<Page>('dashboard');
@@ -203,6 +204,9 @@ export default function Home() {
         )}
         {page === 'calendar' && (
           <CalendarPage events={calEvents} todos={todos} onAdd={actions.add.calEvent} onUpdate={actions.update.calEvent} onDelete={actions.delete.calEvent} />
+        )}
+        {page === 'discover' && (
+          <DiscoverPage onAddEvent={actions.add.calEvent} />
         )}
       </div>
 
