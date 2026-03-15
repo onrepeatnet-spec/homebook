@@ -6,10 +6,11 @@ import ProductsTab from '@/components/ProductsTab';
 import ColoursTab from '@/components/ColoursTab';
 import NotesTab from '@/components/NotesTab';
 import BudgetTab from '@/components/BudgetTab';
+import PlannerTab from '@/components/PlannerTab';
 import type { Room, Inspiration, Product, ColourPalette, BudgetItem, MoodboardItem } from '@/lib/types';
 import { getMoodboardItems } from '@/lib/db';
 
-const TABS = ['inspiration', 'moodboard', 'products', 'colours', 'notes', 'budget'] as const;
+const TABS = ['inspiration', 'moodboard', 'products', 'colours', 'notes', 'budget', 'planner'] as const;
 type Tab = typeof TABS[number];
 
 export default function RoomPage({ room, rooms = [], inspirations = [], products = [], palettes = [], budgetItems = [], onAdd, onUpdate, onDelete }: {
@@ -125,6 +126,10 @@ export default function RoomPage({ room, rooms = [], inspirations = [], products
         />
       )}
       {tab === 'notes' && <NotesTab roomId={room.id} />}
+      {tab === 'planner' && (
+        <PlannerTab roomId={room.id} products={roomProducts} />
+      )}
+
       {tab === 'budget' && (
         <BudgetTab
           items={roomBudget}
