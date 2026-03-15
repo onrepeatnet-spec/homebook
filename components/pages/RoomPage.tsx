@@ -41,6 +41,13 @@ export default function RoomPage({ room, rooms, inspirations, products, palettes
   const [moodboardItems, setMoodboardItems] = useState<MoodboardItem[]>([]);
   const [moodboardLoaded, setMoodboardLoaded] = useState(false);
 
+  // Reset moodboard when room changes
+  useEffect(() => {
+    setMoodboardItems([]);
+    setMoodboardLoaded(false);
+    setTab('inspiration');
+  }, [room.id]);
+
   // Load moodboard items when that tab is first opened
   useEffect(() => {
     if (tab === 'moodboard' && !moodboardLoaded) {
@@ -97,7 +104,7 @@ export default function RoomPage({ room, rooms, inspirations, products, palettes
       )}
       {tab === 'moodboard' && (
         moodboardLoaded
-          ? <MoodboardTab roomId={room.id} initialItems={moodboardItems} />
+          ? <MoodboardTab roomId={room.id} initialItems={moodboardItems} products={roomProducts} />
           : <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>Loading moodboard…</div>
       )}
       {tab === 'products' && (

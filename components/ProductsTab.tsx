@@ -117,8 +117,8 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
           {filtered.map((p, idx) => (
-            <div key={p.id} className="card animate-in" style={{ animationDelay: `${idx * 0.03}s`, cursor: 'pointer', overflow: 'hidden' }}
-              onClick={() => setSelected(p)}
+            <div key={p.id} className="card animate-in" style={{ animationDelay: `${idx * 0.03}s`, cursor: p.url && p.url !== '#' ? 'pointer' : 'default', overflow: 'hidden' }}
+              onClick={() => { if (p.url && p.url !== '#') window.open(p.url, '_blank'); }}
               onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, product: p }); }}>
               {p.image
                 ? <img src={p.image} alt={p.name} style={{ width: '100%', height: 160, objectFit: 'cover' }} /> // eslint-disable-line
@@ -224,6 +224,14 @@ export default function ProductsTab({ products, roomId, allRooms, onAdd, onUpdat
                       {STATUSES.map(s => <option key={s}>{s}</option>)}
                     </select>
                   </div>
+                  {allRooms && allRooms.length > 0 && (
+                    <div>
+                      <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Room</label>
+                      <select className="input" value={editForm.room_id ?? selected.room_id} onChange={e => setEditForm(f => ({ ...f, room_id: Number(e.target.value) }))}>
+                        {allRooms.map(r => <option key={r.id} value={r.id}>{r.emoji} {r.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Product URL</label>
                     <input className="input" placeholder="https://…" value={editForm.url ?? ''} onChange={e => setEditForm(f => ({ ...f, url: e.target.value }))} />

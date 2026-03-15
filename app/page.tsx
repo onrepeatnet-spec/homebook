@@ -51,7 +51,15 @@ export default function Home() {
         db.getCalendarEvents().catch(e => { errors.push(`calendar: ${e?.message ?? e}`); return []; }),
       ]);
 
-      setRooms(r as any); setInspirations(i as any); setProducts(p as any);
+      let rooms = r as Room[];
+      // Auto-create a "General" room if none exist
+      if (rooms.length === 0) {
+        try {
+          const general = await db.createRoom({ name: 'General', description: 'Unassigned items', emoji: '📦', color: '#888888', order: 0 });
+          rooms = [general];
+        } catch { /* ignore */ }
+      }
+      setRooms(rooms); setInspirations(i as any); setProducts(p as any);
       setPalettes(pal as any); setBudgetItems(b as any); setFloorplans(fp as any);
       setTodos(td as any); setCostItems(ci as any); setCalEvents(ce as any);
       if (errors.length) setLoadErrors(errors);
@@ -116,6 +124,7 @@ export default function Home() {
       },
     },
     delete: {
+      room:        async (id: number) => { await db.deleteRoom(id);         setRooms(prev => prev.filter(r => r.id !== id)); },
       inspiration: async (id: number) => { await db.deleteInspiration(id); setInspirations(prev => prev.filter(i => i.id !== id)); },
       product:     async (id: number) => { await db.deleteProduct(id);     setProducts(prev => prev.filter(p => p.id !== id)); },
       palette:     async (id: number) => { await db.deletePalette(id);     setPalettes(prev => prev.filter(p => p.id !== id)); },
@@ -159,11 +168,15 @@ export default function Home() {
           <Dashboard rooms={rooms} inspirations={inspirations} products={products} budgetItems={budgetItems} todos={todos} costItems={costItems} calEvents={calEvents} onNavigate={navigate} />
         )}
         {page === 'rooms' && (
-          <AllRoomsPage rooms={rooms} floorplans={floorplans} onNavigate={navigate} onAdd={actions.add.room} onUpdate={actions.update.room} />
+          <AllRoomsPage rooms={rooms} floorplans={floorplans} onNavigate={navigate} onAdd={actions.add.room} onUpdate={actions.update.room} onDelete={actions.delete.room} />
         )}
         {page === 'room' && activeRoom && (
+          <div key={activeRoom.id}>
           <RoomPage room={activeRoom} rooms={rooms} inspirations={inspirations} products={products} palettes={palettes} budgetItems={budgetItems}
-            onAdd={actions.add} onUpdate={actions.update} onDelete={actions.delete} />
+            onAdd={{ inspiration: actions.add.inspiration, product: actions.add.product, palette: actions.add.palette, budget: actions.add.budget }}
+            onUpdate={{ inspiration: actions.update.inspiration, product: actions.update.product, budget: actions.update.budget }}
+            onDelete={{ inspiration: actions.delete.inspiration, product: actions.delete.product, palette: actions.delete.palette, budget: actions.delete.budget }} />
+          </div>
         )}
         {page === 'floorplans' && (
           <FloorplanPage

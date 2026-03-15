@@ -2,13 +2,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Icon from '@/components/Icon';
 import Modal from '@/components/Modal';
-import type { MoodboardItem } from '@/lib/types';
+import ContextMenu from '@/components/ContextMenu';
+import type { MoodboardItem, Product } from '@/lib/types';
 import { upsertMoodboardItems } from '@/lib/db';
 import { uploadImage } from '@/lib/storage';
 
-export default function MoodboardTab({ roomId, initialItems }: {
+export default function MoodboardTab({ roomId, initialItems, products }: {
   roomId: number;
   initialItems: MoodboardItem[];
+  products?: Product[];
 }) {
   const [items, setItems]         = useState<MoodboardItem[]>(initialItems);
   const [selected, setSelected]   = useState<string | null>(null);
@@ -18,6 +20,8 @@ export default function MoodboardTab({ roomId, initialItems }: {
   const [showImage, setShowImage] = useState(false);
   const [showText, setShowText]   = useState(false);
   const [showLink, setShowLink]   = useState(false);
+  const [showProducts, setShowProducts] = useState(false);
+  const [ctxMenu, setCtxMenu]     = useState<{ x: number; y: number; itemId: string } | null>(null);
   const [newText, setNewText]     = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newLink, setNewLink]     = useState({ href: '', title: '' });
@@ -205,6 +209,25 @@ export default function MoodboardTab({ roomId, initialItems }: {
     setNewLink({ href: '', title: '' }); setShowLink(false);
   };
 
+  const addProductToMoodboard = (product: Product) => {
+    if (product.image) {
+      addImageFromUrl(product.image);
+    } else {
+      // Add as a text block with name and price
+      markDirty([...itemsRef.current, {
+        id: `text_${Date.now()}`, type: 'text',
+        x: 60, y: 60, w: 220, h: 80, room_id: roomId,
+        text: `${product.name}${product.price ? ` — ${product.price}` : ''}`,
+      }]);
+    }
+    setShowProducts(false);
+  };
+
+  const deleteItem = (id: string) => {
+    markDirty(items.filter(it => it.id !== id));
+    setSelected(null);
+  };
+
   const addColour = () => {
     markDirty([...items, {
       id: `col_${Date.now()}`, type: 'color',
@@ -237,6 +260,11 @@ export default function MoodboardTab({ roomId, initialItems }: {
         <button className="btn btn-ghost" onClick={addColour}>
           <Icon name="palette" size={14} /> Add Colour
         </button>
+        {products && products.length > 0 && (
+          <button className="btn btn-ghost" onClick={() => setShowProducts(true)}>
+            <Icon name="shoppingBag" size={14} /> Add Product
+          </button>
+        )}
         {selected && (
           <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={deleteSelected}>
             <Icon name="trash" size={14} /> Delete
@@ -269,6 +297,7 @@ export default function MoodboardTab({ roomId, initialItems }: {
             onMouseDown={(e) => startDrag(e, item.id)}
             onTouchStart={(e) => startDrag(e, item.id)}
             onClick={(e) => { e.stopPropagation(); setSelected(item.id); }}
+            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x: e.clientX, y: e.clientY, itemId: item.id }); }}
           >
             {item.type === 'image' && (
               <div style={{ width: '100%', height: '100%', overflow: 'hidden', borderRadius: 8, position: 'relative' }}>
@@ -404,6 +433,51 @@ export default function MoodboardTab({ roomId, initialItems }: {
               <button className="btn btn-ghost" onClick={() => setShowLink(false)}>Cancel</button>
               <button className="btn btn-primary" disabled={!newLink.href} onClick={addLink}>Add Link</button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Right-click context menu on canvas items */}
+      {ctxMenu && (
+        <ContextMenu
+          x={ctxMenu.x} y={ctxMenu.y}
+          onClose={() => setCtxMenu(null)}
+          items={[
+            { label: 'Delete', icon: '🗑', danger: true, onClick: () => deleteItem(ctxMenu.itemId) },
+          ]}
+        />
+      )}
+
+      {/* Add from Products modal */}
+      {showProducts && products && (
+        <Modal title="Add Product to Moodboard" onClose={() => setShowProducts(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto' }}>
+            {products.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--text-3)', padding: '16px 0' }}>No products yet — add some in the Products section.</p>
+            ) : (
+              products.map(p => (
+                <div key={p.id}
+                  onClick={() => addProductToMoodboard(p)}
+                  style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 12px', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--surface)', transition: 'var(--transition)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}>
+                  {p.image
+                    ? <img src={p.image} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} /> // eslint-disable-line
+                    : <div style={{ width: 44, height: 44, background: 'var(--bg)', borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="shoppingBag" size={18} color="var(--border-dark)" /></div>
+                  }
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{p.name}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-3)' }}>{p.store || 'No store'}</p>
+                  </div>
+                  <p style={{ fontSize: 13, fontFamily: 'var(--font-serif)', flexShrink: 0, color: 'var(--text-2)' }}>
+                    {p.price ? `€${p.price}` : '—'}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+            <button className="btn btn-ghost" onClick={() => setShowProducts(false)}>Close</button>
           </div>
         </Modal>
       )}

@@ -47,29 +47,33 @@ function RoomForm({ f, onChange }: { f: RFD; onChange: (u: Partial<RFD>) => void
   );
 }
 
-export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onUpdate }: {
+export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onUpdate, onDelete }: {
   rooms: Room[];
   floorplans: Floorplan[];
   onNavigate: (p: Page, roomId?: number) => void;
   onAdd: (data: Omit<Room, 'id' | 'created_at'>) => Promise<void>;
   onUpdate: (id: number, updates: Partial<Room>) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
-  const [showAdd, setShowAdd]       = useState(false);
-  const [editing, setEditing]       = useState<Room | null>(null);
-  const [saving, setSaving]         = useState(false);
-  const [form, setForm]             = useState<RFD>(EMPTY);
-  const [editForm, setEditForm]     = useState<RFD>(EMPTY);
-  const [ctxMenu, setCtxMenu]       = useState<{ x: number; y: number; room: Room } | null>(null);
-  const [draggedId, setDraggedId]   = useState<number | null>(null);
-  const [dragOverId, setDragOverId] = useState<number | null>(null);
-  const [localOrder, setLocalOrder] = useState<Room[]>([]);
+  const [showAdd, setShowAdd]         = useState(false);
+  const [editing, setEditing]         = useState<Room | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Room | null>(null);
+  const [saving, setSaving]           = useState(false);
+  const [deleting, setDeleting]       = useState(false);
+  const [form, setForm]               = useState<RFD>(EMPTY);
+  const [editForm, setEditForm]       = useState<RFD>(EMPTY);
+  const [ctxMenu, setCtxMenu]         = useState<{ x: number; y: number; room: Room } | null>(null);
+  const [draggedId, setDraggedId]     = useState<number | null>(null);
+  const [dragOverId, setDragOverId]   = useState<number | null>(null);
+  const [localOrder, setLocalOrder]   = useState<Room[]>([]);
 
+  // Show ALL rooms — no floorplan filter here
+  const orderedRooms = localOrder.length > 0 ? localOrder : rooms;
+
+  // Which rooms are on a floorplan (for badge)
   const mappedRoomIds = new Set(
     floorplans.flatMap(fp => fp.rooms.map(r => r.room_id)).filter((id): id is number => id !== null)
   );
-  const visibleRooms = floorplans.length > 0 && mappedRoomIds.size > 0
-    ? rooms.filter(r => mappedRoomIds.has(r.id)) : rooms;
-  const orderedRooms = localOrder.length > 0 ? localOrder : visibleRooms;
 
   const handleDrop = async (targetId: number) => {
     if (!draggedId || draggedId === targetId) { setDraggedId(null); setDragOverId(null); return; }
@@ -100,15 +104,19 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
     try { await onUpdate(editing.id, editForm); setEditing(null); } finally { setSaving(false); }
   };
 
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try { await onDelete(confirmDelete.id); setConfirmDelete(null); } finally { setDeleting(false); }
+  };
+
   return (
     <div style={{ padding: '32px 36px' }} className="animate-in">
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, fontWeight: 300 }}>Rooms</h1>
           <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 4 }}>
-            {floorplans.length > 0 && mappedRoomIds.size > 0
-              ? `${orderedRooms.length} room${orderedRooms.length !== 1 ? 's' : ''} on your floorplan`
-              : 'Your home, organised by space'}
+            {orderedRooms.length} room{orderedRooms.length !== 1 ? 's' : ''} · drag to reorder
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
@@ -119,12 +127,8 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
       {orderedRooms.length === 0 ? (
         <div className="card" style={{ padding: '60px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 8 }}>
-            {floorplans.length > 0 ? 'No rooms drawn on your floorplan yet' : 'No rooms yet'}
-          </p>
-          {floorplans.length > 0
-            ? <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 16 }}>Go to Floorplans and draw polygons to create rooms</p>
-            : <button className="btn btn-primary" onClick={() => setShowAdd(true)}>Add your first room</button>}
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 8 }}>No rooms yet</p>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>Add your first room</button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 18 }}>
@@ -143,7 +147,12 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ fontSize: 36 }}>{room.emoji}</div>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                  <span style={{ fontSize: 14, color: 'var(--text-3)' }} title="Drag to reorder">⠿</span>
+                  {mappedRoomIds.has(room.id) && (
+                    <span style={{ fontSize: 10, background: 'var(--accent-light)', color: 'var(--accent)', padding: '2px 6px', borderRadius: 8, fontWeight: 500 }}>
+                      On floorplan
+                    </span>
+                  )}
+                  <span style={{ fontSize: 14, color: 'var(--text-3)', cursor: 'grab' }} title="Drag to reorder">⠿</span>
                   <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => startEdit(room)}>
                     <Icon name="edit" size={14} />
                   </button>
@@ -161,6 +170,7 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
         </div>
       )}
 
+      {/* Add modal */}
       {showAdd && (
         <Modal title="Add New Room" onClose={() => setShowAdd(false)}>
           <RoomForm f={form} onChange={u => setForm(p => ({ ...p, ...u }))} />
@@ -173,6 +183,7 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
         </Modal>
       )}
 
+      {/* Edit modal */}
       {editing && (
         <Modal title={`Edit: ${editing.name}`} onClose={() => setEditing(null)}>
           <RoomForm f={editForm} onChange={u => setEditForm(p => ({ ...p, ...u }))} />
@@ -185,11 +196,32 @@ export default function AllRoomsPage({ rooms, floorplans, onNavigate, onAdd, onU
         </Modal>
       )}
 
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <Modal title="Delete Room?" onClose={() => setConfirmDelete(null)}>
+          <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 8 }}>
+            Are you sure you want to delete <strong>{confirmDelete.name}</strong>?
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 20 }}>
+            This will permanently delete the room and all its inspiration, products, palettes, notes and budget items. This cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button className="btn btn-ghost" onClick={() => setConfirmDelete(null)}>Cancel</button>
+            <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }}
+              disabled={deleting} onClick={handleDelete}>
+              {deleting ? 'Deleting…' : 'Yes, delete room'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Context menu */}
       {ctxMenu && (
         <ContextMenu x={ctxMenu.x} y={ctxMenu.y} onClose={() => setCtxMenu(null)}
           items={[
             { label: 'Open workspace', icon: '🏠', onClick: () => onNavigate('room', ctxMenu.room.id) },
             { label: 'Edit room', icon: '✏️', onClick: () => startEdit(ctxMenu.room) },
+            { label: 'Delete room', icon: '🗑', danger: true, onClick: () => setConfirmDelete(ctxMenu.room) },
           ]}
         />
       )}
