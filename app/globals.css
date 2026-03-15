@@ -22,6 +22,59 @@
   --transition: all 0.2s ease;
 }
 
+.dark {
+  --bg: #141210;
+  --surface: #1C1A17;
+  --border: #2E2A25;
+  --border-dark: #3D3830;
+  --text: #F0EBE4;
+  --text-2: #A89C92;
+  --text-3: #6B5F53;
+  --accent: #C17B4E;
+  --accent-light: #2A1E14;
+  --accent-dark: #D4956A;
+  --green: #5A9B8C;
+  --red: #D4655A;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+/* Time-of-day tints — applied to body via JS */
+body.time-morning {
+  --bg: #F5F2EE;
+  --surface: #FDFBF8;
+}
+body.time-afternoon {
+  --bg: #F5F0E8;
+  --surface: #FDFAF4;
+}
+body.time-evening {
+  --bg: #F0EBE2;
+  --surface: #F8F3EC;
+}
+body.time-night {
+  --bg: #EDE8E0;
+  --surface: #F5F1EA;
+}
+/* Dark mode time tints */
+body.dark.time-morning {
+  --bg: #141210;
+  --surface: #1C1A17;
+}
+body.dark.time-afternoon {
+  --bg: #161310;
+  --surface: #1E1B16;
+}
+body.dark.time-evening {
+  --bg: #160F09;
+  --surface: #1E1510;
+}
+body.dark.time-night {
+  --bg: #0E0D0C;
+  --surface: #161412;
+}
+
+html { transition: background 0.6s ease, color 0.3s ease; }
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
